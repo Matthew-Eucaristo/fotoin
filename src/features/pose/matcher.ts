@@ -21,6 +21,9 @@ export type ShotHint =
   | 'tiltHeadRight'
   | 'chinUp'
   | 'chinDown'
+  | 'needMorePeople'
+  | 'spreadApart'
+  | 'closeTogether'
   | 'hold';
 
 export type MatchResult = {
@@ -29,6 +32,10 @@ export type MatchResult = {
   poseScore: number;
   placementScore: number;
   hint: ShotHint;
+  /** Which person (left → right) the hint is about, in group shots. */
+  person?: number;
+  /** People in the reference (group shots). */
+  people?: number;
 };
 
 export const NO_MATCH: MatchResult = { score: 0, poseScore: 0, placementScore: 0, hint: 'findPerson' };
@@ -126,7 +133,7 @@ function angleBetween(a: Point, b: Point): number {
   return Math.acos(Math.min(1, Math.max(-1, (a.x * b.x + a.y * b.y) / mag)));
 }
 
-function matchOriented(live: BodyPose, ref: BodyPose, roll: number): MatchResult {
+function matchOriented(live: BodyPose, ref: BodyPose, roll: number, poseOnly: boolean): MatchResult {
   'worklet';
   let sum = 0;
   let count = 0;
@@ -147,10 +154,12 @@ function matchOriented(live: BodyPose, ref: BodyPose, roll: number): MatchResult
   const poseScore = count === 0 ? 0 : sum / count;
 
   const place = placement(anchor(live), anchor(ref), roll);
-  const score = Math.min(1, Math.max(0, 0.6 * poseScore + 0.4 * place.score - place.levelPenalty));
+  const score = poseOnly
+    ? poseScore
+    : Math.min(1, Math.max(0, 0.6 * poseScore + 0.4 * place.score - place.levelPenalty));
 
   let hint: ShotHint;
-  if (place.hint) hint = place.hint;
+  if (place.hint && !poseOnly) hint = place.hint;
   else if (!worstLimb) hint = 'findPerson';
   else if (worstScore > 0.8) hint = 'hold';
   else hint = limbHint(worstLimb);
@@ -163,11 +172,22 @@ function matchOriented(live: BodyPose, ref: BodyPose, roll: number): MatchResult
  * directions (scale/position invariant); placement uses a torso anchor so the
  * photographer is told to move, not the subject. Worklet-safe.
  */
-export function matchPose(live: BodyPose | null, reference: BodyPose, rollDegrees = 0): MatchResult {
+export function matchPose(
+  live: BodyPose | null,
+  reference: BodyPose,
+  rollDegrees = 0,
+  poseOnly = false,
+): MatchResult {
   'worklet';
   if (!isUsable(live) || !isUsable(reference)) return NO_MATCH;
   // Pinterest images are often flipped; accept whichever side fits better.
-  const a = matchOriented(live, reference, rollDegrees);
-  const b = matchOriented(live, mirrored(reference), rollDegrees);
+  const a = matchOriented(live, reference, rollDegrees, poseOnly);
+  const b = matchOriented(live, mirrored(reference), rollDegrees, poseOnly);
   return a.score >= b.score ? a : b;
+}
+
+/** Torso centre/size of a body, for group framing. */
+export function bodyAnchor(pose: BodyPose): { center: Point; size: number } {
+  'worklet';
+  return anchor(pose);
 }

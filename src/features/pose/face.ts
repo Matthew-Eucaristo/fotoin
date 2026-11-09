@@ -14,7 +14,6 @@ export type FacePose = {
   mouth: [Point, Point];
 };
 
-const FACE_VALUES = 15;
 const YAW_TOLERANCE = 0.12; // nose offset / eye distance
 const ROLL_TOLERANCE_DEG = 6;
 const PITCH_TOLERANCE = 0.1; // nose position between eyes and mouth
@@ -26,17 +25,16 @@ function sortX(a: Point, b: Point): [Point, Point] {
   return a.x <= b.x ? [a, b] : [b, a];
 }
 
-/** Decodes the native flat array (see FotoinPose.nitro.ts). */
-export function decodeFace(v: number[]): FacePose | null {
+/** One face block (see FotoinPose.nitro.ts) starting at `offset`. */
+export function faceFromBlock(v: number[], offset: number, aspect: number): FacePose {
   'worklet';
-  if (v.length < FACE_VALUES) return null;
-  const p = (i: number): Point => ({ x: v[i], y: v[i + 1] });
+  const p = (i: number): Point => ({ x: v[offset + i], y: v[offset + i + 1] });
   return {
-    aspect: v[0],
-    box: { x: v[1], y: v[2], w: v[3], h: v[4] },
-    eyes: sortX(p(5), p(7)),
-    nose: p(9),
-    mouth: sortX(p(11), p(13)),
+    aspect,
+    box: { x: v[offset], y: v[offset + 1], w: v[offset + 2], h: v[offset + 3] },
+    eyes: sortX(p(4), p(6)),
+    nose: p(8),
+    mouth: sortX(p(10), p(12)),
   };
 }
 
@@ -93,12 +91,12 @@ export function faceAngles(face: FacePose): { yaw: number; roll: number; pitch: 
   };
 }
 
-function faceAnchor(face: FacePose): { center: Point; size: number } {
+export function faceAnchor(face: FacePose): { center: Point; size: number } {
   'worklet';
   return { center: { x: face.box.x + face.box.w / 2, y: face.box.y + face.box.h / 2 }, size: face.box.h };
 }
 
-function matchFaceOriented(live: FacePose, ref: FacePose, roll: number): MatchResult {
+function matchFaceOriented(live: FacePose, ref: FacePose, roll: number, poseOnly: boolean): MatchResult {
   'worklet';
   const l = faceAngles(live);
   const r = faceAngles(ref);
@@ -112,14 +110,16 @@ function matchFaceOriented(live: FacePose, ref: FacePose, roll: number): MatchRe
     3;
 
   const place = placement(faceAnchor(live), faceAnchor(ref), roll);
-  const score = Math.min(1, Math.max(0, 0.5 * poseScore + 0.5 * place.score - place.levelPenalty));
+  const score = poseOnly
+    ? poseScore
+    : Math.min(1, Math.max(0, 0.5 * poseScore + 0.5 * place.score - place.levelPenalty));
 
   // Largest head difference relative to its tolerance wins.
   const yawErr = Math.abs(dYaw) / YAW_TOLERANCE;
   const rollErr = Math.abs(dRoll) / ROLL_TOLERANCE_DEG;
   const pitchErr = Math.abs(dPitch) / PITCH_TOLERANCE;
   let hint: ShotHint;
-  if (place.hint) hint = place.hint;
+  if (place.hint && !poseOnly) hint = place.hint;
   else if (Math.max(yawErr, rollErr, pitchErr) <= 1) hint = 'hold';
   else if (yawErr >= rollErr && yawErr >= pitchErr) hint = dYaw > 0 ? 'turnLeft' : 'turnRight';
   else if (rollErr >= pitchErr) hint = dRoll > 0 ? 'tiltHeadLeft' : 'tiltHeadRight';
@@ -129,10 +129,15 @@ function matchFaceOriented(live: FacePose, ref: FacePose, roll: number): MatchRe
 }
 
 /** Close-up counterpart of `matchPose`. Worklet-safe. */
-export function matchFace(live: FacePose | null, reference: FacePose, rollDegrees = 0): MatchResult {
+export function matchFace(
+  live: FacePose | null,
+  reference: FacePose,
+  rollDegrees = 0,
+  poseOnly = false,
+): MatchResult {
   'worklet';
   if (!live) return NO_MATCH;
-  const a = matchFaceOriented(live, reference, rollDegrees);
-  const b = matchFaceOriented(live, mirroredFace(reference), rollDegrees);
+  const a = matchFaceOriented(live, reference, rollDegrees, poseOnly);
+  const b = matchFaceOriented(live, mirroredFace(reference), rollDegrees, poseOnly);
   return a.score >= b.score ? a : b;
 }

@@ -78,16 +78,22 @@ class HybridFotoinPose: HybridFotoinPoseSpec {
     return (handler, Double(image.size.width / image.size.height))
   }
 
-  /// Largest face → [aspect, box(4), eyeA, eyeB, nose, mouthA, mouthB].
+  private static let maxPeople = 4
+
+  /// Faces, largest first → [aspect, count, (box(4), eyeA, eyeB, nose, mouthA, mouthB)…].
   private static func packFace(_ observations: [VNFaceObservation]?, aspect: Double) -> [Double] {
-    guard let face = observations?.max(by: {
-      $0.boundingBox.width * $0.boundingBox.height < $1.boundingBox.width * $1.boundingBox.height
-    }),
-      let landmarks = face.landmarks,
+    let faces = (observations ?? [])
+      .sorted { $0.boundingBox.width * $0.boundingBox.height > $1.boundingBox.width * $1.boundingBox.height }
+      .compactMap(faceBlock)
+      .prefix(maxPeople)
+    return [aspect, Double(faces.count)] + faces.flatMap { $0 }
+  }
+
+  private static func faceBlock(_ face: VNFaceObservation) -> [Double]? {
+    guard let landmarks = face.landmarks,
       let leftEye = landmarks.leftEye, let rightEye = landmarks.rightEye,
       let nose = landmarks.nose, let lips = landmarks.outerLips
-    else { return [] }
-
+    else { return nil }
     // Normalised image points; Vision's origin is bottom-left, ours top-left.
     let unit = CGSize(width: 1, height: 1)
     func flip(_ p: CGPoint) -> [Double] { [Double(p.x), 1 - Double(p.y)] }
@@ -98,24 +104,21 @@ class HybridFotoinPose: HybridFotoinPoseSpec {
       return flip(CGPoint(x: sum.x / CGFloat(pts.count), y: sum.y / CGFloat(pts.count)))
     }
     let lipPoints = lips.pointsInImage(imageSize: unit)
-    guard let mouthA = lipPoints.min(by: { $0.x < $1.x }), let mouthB = lipPoints.max(by: { $0.x < $1.x })
-    else { return [] }
     // Nose tip: the lowest point of the nose region (smallest Vision y).
-    let nosePoints = nose.pointsInImage(imageSize: unit)
-    guard let noseTip = nosePoints.min(by: { $0.y < $1.y }) else { return [] }
-
+    guard let mouthA = lipPoints.min(by: { $0.x < $1.x }),
+      let mouthB = lipPoints.max(by: { $0.x < $1.x }),
+      let noseTip = nose.pointsInImage(imageSize: unit).min(by: { $0.y < $1.y })
+    else { return nil }
     let box = face.boundingBox
-    return [aspect, Double(box.minX), 1 - Double(box.maxY), Double(box.width), Double(box.height)]
+    return [Double(box.minX), 1 - Double(box.maxY), Double(box.width), Double(box.height)]
       + centroid(leftEye) + centroid(rightEye) + flip(noseTip) + flip(mouthA) + flip(mouthB)
   }
 
-  /// Picks the most prominent person (largest area of confident joints).
+  /// Bodies, largest first (area of confident joints) → [aspect, count, (x, y, conf)×13…].
   private static func pack(_ observations: [VNHumanBodyPoseObservation]?, aspect: Double) -> [Double] {
-    guard let observations, !observations.isEmpty else { return [] }
-    var best: [Double] = []
-    var bestArea = -1.0
-    for observation in observations {
-      var values: [Double] = [aspect]
+    var people: [(area: Double, values: [Double])] = []
+    for observation in observations ?? [] {
+      var values: [Double] = []
       var minX = 1.0, minY = 1.0, maxX = 0.0, maxY = 0.0, found = 0
       for joint in joints {
         if let p = try? observation.recognizedPoint(joint), p.confidence > 0.1 {
@@ -129,14 +132,10 @@ class HybridFotoinPose: HybridFotoinPoseSpec {
           values += [0, 0, 0]
         }
       }
-      guard found > 0 else { continue }
-      let area = (maxX - minX) * (maxY - minY)
-      if area > bestArea {
-        bestArea = area
-        best = values
-      }
+      if found >= 4 { people.append(((maxX - minX) * (maxY - minY), values)) }
     }
-    return best
+    let top = people.sorted { $0.area > $1.area }.prefix(maxPeople)
+    return [aspect, Double(top.count)] + top.flatMap { $0.values }
   }
 }
 

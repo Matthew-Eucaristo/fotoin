@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
-import { copy } from '@/copy';
+import { copy, hintText } from '@/copy';
 import type { MatchResult } from '@/features/pose/matcher';
 import { colors, scoreColor, type } from '@/theme';
 import { Glass } from '@/ui/glass';
@@ -37,11 +37,11 @@ export function MatchMeter({ result, enabled }: { result: MatchResult; enabled: 
       </View>
       <Text
         style={styles.hint}
-        numberOfLines={1}
+        numberOfLines={2}
         accessibilityLiveRegion="polite"
         accessibilityRole="text"
       >
-        {enabled ? copy.hint[result.hint] : copy.holdToPeek}
+        {enabled ? hintText(result) : copy.holdToPeek}
       </Text>
     </Glass>
   );

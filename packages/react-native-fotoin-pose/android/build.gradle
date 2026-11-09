@@ -140,8 +140,9 @@ dependencies {
   implementation project(":react-native-vision-camera")
   // ImageProxy from VisionCamera frames; must match VisionCamera's CameraX version.
   compileOnly "androidx.camera:camera-core:1.7.0-alpha03"
-  // Official Google ML Kit pose detection (bundled base model, offline).
-  implementation "com.google.mlkit:pose-detection:18.0.0-beta5"
+  // Official Google MediaPipe pose landmarker: multi-person body pose.
+  // Model: src/main/assets/pose_landmarker_lite.task (Google's float16 lite).
+  implementation "com.google.mediapipe:tasks-vision:1.2.2"
   // Official Google ML Kit face detection (bundled model) for close-ups.
   implementation "com.google.mlkit:face-detection:16.1.7"
 }

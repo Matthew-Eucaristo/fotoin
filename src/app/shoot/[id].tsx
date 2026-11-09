@@ -16,10 +16,12 @@ import {
 import { createSynchronizable, scheduleOnRN } from 'react-native-worklets';
 
 import { copy } from '@/copy';
-import { coverFace, decodeFace, type FacePose, matchFace } from '@/features/pose/face';
-import { matchPose, type MatchResult, NO_MATCH } from '@/features/pose/matcher';
+import { decodeFaces, decodePeople } from '@/features/pose/decode';
+import { coverFace, faceAnchor, type FacePose, matchFace } from '@/features/pose/face';
+import { matchGroup } from '@/features/pose/group';
+import { bodyAnchor, matchPose, type MatchResult, NO_MATCH } from '@/features/pose/matcher';
 import { referenceMode } from '@/features/pose/mode';
-import { decodePose, FotoinPose } from '@/features/pose/native';
+import { FotoinPose } from '@/features/pose/native';
 import { type BodyPose, coverInto } from '@/features/pose/pose';
 import { addReference, referenceUri, retryPose, useReference } from '@/features/references/store';
 import { FaceOverlay } from '@/features/shoot/face-overlay';
@@ -68,8 +70,8 @@ export default function Shoot() {
   const [capturing, setCapturing] = useState(false);
   // CameraX rejects zoom changes before the session runs; only zoom once started.
   const [started, setStarted] = useState(false);
-  const [live, setLive] = useState<BodyPose | null>(null);
-  const [liveFace, setLiveFace] = useState<FacePose | null>(null);
+  const [livePeople, setLivePeople] = useState<BodyPose[]>([]);
+  const [liveFaces, setLiveFaces] = useState<FacePose[]>([]);
   const [match, setMatch] = useState<MatchResult>(NO_MATCH);
   const roll = useRef(0);
   const matchedSince = useRef<number | null>(null);
@@ -79,8 +81,8 @@ export default function Shoot() {
   // Full/half body matches on the skeleton; close-ups match on the face.
   const mode = reference ? referenceMode(reference) : 'none';
   // React Compiler memoizes these; no manual useMemo needed.
-  const target = mode === 'body' && reference?.pose ? coverInto(reference.pose, viewAspect) : null;
-  const targetFace = mode === 'face' && reference?.face ? coverFace(reference.face, viewAspect) : null;
+  const targets = mode === 'body' && reference ? reference.people.map((p) => coverInto(p, viewAspect)) : [];
+  const targetFaces = mode === 'face' && reference?.faces ? reference.faces.map((f) => coverFace(f, viewAspect)) : [];
 
   // Lenses: on iOS virtual devices zoom 1 is the ultra-wide and "1×" is the
   // first lens-switch factor; on Android "1×" is zoom 1 and minZoom < 1.
@@ -102,7 +104,7 @@ export default function Shoot() {
 
   // A reference saved without a pose gets one more read when opened.
   useEffect(() => {
-    if (reference && !reference.pose) retryPose(reference.id);
+    if (reference && (reference.people.length === 0 || reference.faces === undefined)) retryPose(reference.id);
   }, [reference]);
 
   useEffect(() => {
@@ -140,14 +142,14 @@ export default function Shoot() {
 
   function onPoseValues(values: number[], frameMs: number, kind: number) {
     let result: MatchResult = NO_MATCH;
-    if (kind === ANALYZE_BODY && target) {
-      const pose = decodePose(values);
-      setLive(pose);
-      result = matchPose(pose ? coverInto(pose, viewAspect) : null, target, roll.current);
-    } else if (kind === ANALYZE_FACE && targetFace) {
-      const face = decodeFace(values);
-      setLiveFace(face);
-      result = matchFace(face ? coverFace(face, viewAspect) : null, targetFace, roll.current);
+    if (kind === ANALYZE_BODY && targets.length > 0) {
+      const people = decodePeople(values).map((p) => coverInto(p, viewAspect));
+      setLivePeople(people);
+      result = matchGroup(people, targets, matchPose, bodyAnchor, roll.current);
+    } else if (kind === ANALYZE_FACE && targetFaces.length > 0) {
+      const faces = decodeFaces(values).map((f) => coverFace(f, viewAspect));
+      setLiveFaces(faces);
+      result = matchGroup(faces, targetFaces, matchFace, faceAnchor, roll.current);
     } else {
       return;
     }
@@ -217,8 +219,6 @@ export default function Shoot() {
 
   const enabled = mode !== 'none' && !peek;
   const isActive = focused && appActive && hasPermission;
-  const liveInView = live ? coverInto(live, viewAspect) : null;
-  const liveFaceInView = liveFace ? coverFace(liveFace, viewAspect) : null;
   const cameraReady = !!device && hasPermission;
 
   return (
@@ -287,16 +287,16 @@ export default function Shoot() {
           {!peek ? <ViewfinderGuides grid={grid} /> : null}
           {showPose && !peek && mode === 'body' ? (
             <PoseOverlay
-              target={target}
-              live={liveInView}
+              targets={targets}
+              live={livePeople}
               targetColor="rgba(247,247,247,0.6)"
               liveColor={scoreColor(match.score)}
             />
           ) : null}
           {showPose && !peek && mode === 'face' ? (
             <FaceOverlay
-              target={targetFace}
-              live={liveFaceInView}
+              targets={targetFaces}
+              live={liveFaces}
               targetColor="rgba(247,247,247,0.7)"
               liveColor={scoreColor(match.score)}
             />

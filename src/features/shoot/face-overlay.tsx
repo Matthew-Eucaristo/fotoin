@@ -4,15 +4,15 @@ import Svg, { Circle, Line, Rect } from 'react-native-svg';
 
 import type { FacePose } from '@/features/pose/face';
 
-/** Close-up guide: face outline, eye line, nose and mouth, for target and live. */
+/** Close-up guides: face outline, eye line, nose and mouth, for targets and live faces. */
 export function FaceOverlay({
-  target,
+  targets,
   live,
   targetColor,
   liveColor,
 }: {
-  target: FacePose | null;
-  live: FacePose | null;
+  targets: FacePose[];
+  live: FacePose[];
   targetColor: string;
   liveColor: string;
 }) {
@@ -25,8 +25,12 @@ export function FaceOverlay({
     >
       {size.w > 0 ? (
         <Svg width={size.w} height={size.h}>
-          {target ? <FaceMarks face={target} color={targetColor} stroke={3} size={size} dashed /> : null}
-          {live ? <FaceMarks face={live} color={liveColor} stroke={2.5} size={size} /> : null}
+          {targets.map((face, i) => (
+            <FaceMarks key={`t${i}`} face={face} color={targetColor} stroke={3} size={size} dashed />
+          ))}
+          {live.map((face, i) => (
+            <FaceMarks key={`l${i}`} face={face} color={liveColor} stroke={2.5} size={size} />
+          ))}
         </Svg>
       ) : null}
     </View>

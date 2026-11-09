@@ -7,7 +7,7 @@ import { Alert, FlatList, Pressable, StyleSheet, Text, useWindowDimensions, View
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { copy } from '@/copy';
-import { referenceMode } from '@/features/pose/mode';
+import { referenceMode, referencePeopleCount } from '@/features/pose/mode';
 import {
   addReference,
   type ReferencePhoto,
@@ -88,6 +88,7 @@ export default function Home() {
                   size={14}
                   color={colors.amber}
                 />
+                {referencePeopleCount(item) > 1 ? <Text style={styles.badgeCount}>{referencePeopleCount(item)}</Text> : null}
               </View>
             ) : null}
           </Pressable>
@@ -137,12 +138,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: colors.surface,
   },
+  badgeCount: { ...type.caption, color: colors.amber, fontWeight: '800' },
   badge: {
     position: 'absolute',
     top: 8,
     right: 8,
-    width: 26,
+    minWidth: 26,
     height: 26,
+    paddingHorizontal: 6,
+    flexDirection: 'row',
+    gap: 3,
     borderRadius: 13,
     backgroundColor: 'rgba(18,18,18,0.8)',
     alignItems: 'center',

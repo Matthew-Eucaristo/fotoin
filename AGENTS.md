@@ -23,11 +23,14 @@ not the v4 frame-processor API.
   `enablePhysicalBufferRotation` (frames arrive upright on both platforms).
   `constraints={[{ resolutionBias: photoOutput }]}`.
 - Pose: local Nitro module `packages/react-native-fotoin-pose` — Apple Vision
-  on iOS (`ios/HybridFotoinPose.swift`), Google ML Kit on Android
-  (`android/.../HybridFotoinPose.kt`, CPU-only: its GPU benchmark process
-  crashed on Android 16). Same flat-array contract in
+  on iOS (`ios/HybridFotoinPose.swift`); on Android
+  (`android/.../HybridFotoinPose.kt`) Google MediaPipe Pose Landmarker for
+  bodies (multi-person, VIDEO mode, CPU, model bundled in
+  `android/src/main/assets/pose_landmarker_lite.task`, loaded from a buffer)
+  and ML Kit Face Detection for faces. ML Kit Pose was dropped: single person
+  only. Same flat-array contract (up to 4 people, largest first) in
   `src/specs/FotoinPose.nitro.ts`; run `npx nitrogen` in that package after
-  changing the spec.
+  changing the spec. Pure decoders live in `src/features/pose/decode.ts`.
 - Two match modes, picked per reference by `src/features/pose/mode.ts`:
   body (torso visible: shoulders + hips) via `matcher.ts` (limb directions +
   torso anchor), and face for close-ups via `face.ts` (face box placement +
@@ -35,9 +38,14 @@ not the v4 frame-processor API.
   matter; eyes/mouth are sorted by screen x). Both share `placement()` and are
   pure TS, worklet-safe, and unit-tested. Worklet closures capture functions at
   definition, so declare helpers before callers.
-- Native module methods: `detect`/`detectInImage` (13 body joints) and
-  `detectFace`/`detectFaceInImage` (box + eyes, nose, mouth corners). The frame
-  thread runs only the detector the reference needs.
+- Native module methods: `detect`/`detectInImage` (13 body joints per person)
+  and `detectFace`/`detectFaceInImage` (box + eyes, nose, mouth corners per
+  face). The frame thread runs only the detector the reference needs.
+- Groups (`group.ts`): the largest live people are paired with the reference
+  left → right (or flipped), framing and spacing are coached once for the
+  group, then the worst person's pose ("Orang kiri: …"). References keep
+  `people[]`/`faces[]`; subjects under 40% of the largest are dropped as
+  background (posters, passers-by). Old saves with `pose`/`face` migrate on load.
 - UI: system fonts, `expo-symbols` (SF Symbols / Material Symbols),
   `expo-glass-effect` Liquid Glass on iOS 26+ with `expo-blur` fallback
   (`src/ui/glass.tsx`), `@expo/ui` Slider, `react-native-svg` for overlays,
@@ -66,10 +74,10 @@ CocoaPods needs `LANG=en_US.UTF-8`.
 
 - iOS Simulator has no camera: the shoot screen shows a placeholder.
   Vision body pose also fails there ("Unable to setup request"); test on device.
-- ML Kit's first still-image run after launch can return no confident joints;
-  `readPose` tries twice and references are re-read when opened.
-- ML Kit face detection ignores faces under ~10% of the image width, so
-  full-body references usually have `face: null` and match on the body.
+- The first still-image run after launch can come back empty; `readPeople`
+  tries twice and references are re-read when opened.
+- ML Kit face detection ignores faces under ~8% of the image width
+  (`setMinFaceSize`), so full-body references usually match on bodies.
 - Nitro looks up the Kotlin class in `com.margelo.nitro.<namespace>`.
 - Android installs over USB on XOS need "Install via USB" in Developer options.
 - If several adb devices are connected, set `ANDROID_SERIAL`.

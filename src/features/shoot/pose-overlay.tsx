@@ -5,17 +5,18 @@ import Svg, { Circle, Line } from 'react-native-svg';
 import { type BodyPose, LIMBS } from '@/features/pose/pose';
 
 /**
- * Reference skeleton (target) and live skeleton, both normalised to the
- * viewport. Drawn in real pixels so strokes keep their width on any aspect.
+ * Reference skeletons (targets) and live skeletons for everyone in frame,
+ * normalised to the viewport. Drawn in real pixels so strokes keep their
+ * width on any aspect.
  */
 export function PoseOverlay({
-  target,
+  targets,
   live,
   targetColor,
   liveColor,
 }: {
-  target: BodyPose | null;
-  live: BodyPose | null;
+  targets: BodyPose[];
+  live: BodyPose[];
   targetColor: string;
   liveColor: string;
 }) {
@@ -28,8 +29,12 @@ export function PoseOverlay({
     >
       {size.w > 0 ? (
         <Svg width={size.w} height={size.h}>
-          {target ? <Skeleton pose={target} color={targetColor} stroke={6} size={size} /> : null}
-          {live ? <Skeleton pose={live} color={liveColor} stroke={4} size={size} /> : null}
+          {targets.map((pose, i) => (
+            <Skeleton key={`t${i}`} pose={pose} color={targetColor} stroke={6} size={size} />
+          ))}
+          {live.map((pose, i) => (
+            <Skeleton key={`l${i}`} pose={pose} color={liveColor} stroke={4} size={size} />
+          ))}
         </Svg>
       ) : null}
     </View>

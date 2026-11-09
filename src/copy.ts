@@ -1,4 +1,4 @@
-import type { ShotHint } from './features/pose/matcher';
+import type { MatchResult, ShotHint } from './features/pose/matcher';
 
 /** Indonesian UI copy, in one place so a language switch is a file swap. */
 export const copy = {
@@ -46,17 +46,35 @@ export const copy = {
     tiltUp: 'Arahkan HP sedikit ke atas',
     tiltDown: 'Arahkan HP sedikit ke bawah',
     holdLevel: 'Luruskan HP',
-    fixLeftArm: 'Tangan kiri subjek belum pas',
-    fixRightArm: 'Tangan kanan subjek belum pas',
-    fixLeftLeg: 'Kaki kiri subjek belum pas',
-    fixRightLeg: 'Kaki kanan subjek belum pas',
-    fixTorso: 'Arah badan subjek belum pas',
-    turnLeft: 'Minta subjek menoleh ke kiri layar',
-    turnRight: 'Minta subjek menoleh ke kanan layar',
+    fixLeftArm: 'Tangan kiri belum pas',
+    fixRightArm: 'Tangan kanan belum pas',
+    fixLeftLeg: 'Kaki kiri belum pas',
+    fixRightLeg: 'Kaki kanan belum pas',
+    fixTorso: 'Arah badan belum pas',
+    turnLeft: 'Menoleh ke kiri layar',
+    turnRight: 'Menoleh ke kanan layar',
     tiltHeadLeft: 'Miringkan kepala ke kiri layar',
     tiltHeadRight: 'Miringkan kepala ke kanan layar',
-    chinUp: 'Dagu subjek sedikit diangkat',
-    chinDown: 'Dagu subjek sedikit diturunkan',
+    chinUp: 'Angkat dagu sedikit',
+    chinDown: 'Turunkan dagu sedikit',
+    needMorePeople: 'Perlu lebih banyak orang di frame',
+    spreadApart: 'Minta mereka berdiri lebih berjauhan',
+    closeTogether: 'Minta mereka lebih berdekatan',
     hold: 'Pas! Tahan…',
   } satisfies Record<ShotHint, string>,
 } as const;
+
+/** Position labels for people in a group, left → right on screen. */
+function personLabel(index: number, people: number): string {
+  if (people === 2) return index === 0 ? 'Orang kiri' : 'Orang kanan';
+  if (people === 3) return ['Orang kiri', 'Orang tengah', 'Orang kanan'][index];
+  return `Orang ke-${index + 1}`;
+}
+
+/** The hint line shown on the meter, naming the person in group shots. */
+export function hintText(result: MatchResult): string {
+  if (result.hint === 'needMorePeople' && result.people) return `Perlu ${result.people} orang di frame`;
+  const text = copy.hint[result.hint];
+  if (result.person === undefined || !result.people) return text;
+  return `${personLabel(result.person, result.people)}: ${text.charAt(0).toLowerCase()}${text.slice(1)}`;
+}

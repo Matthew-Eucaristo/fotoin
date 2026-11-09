@@ -1,6 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { decodeFace, type FacePose, faceAngles, matchFace } from './face';
+import { type FacePose, faceAngles, matchFace } from './face';
+import { decodeFaces } from './decode';
 
 function face({ dx = 0, scale = 1, noseDx = 0, tilt = 0, noseDy = 0 } = {}): FacePose {
   const cx = 0.5 + dx;
@@ -50,15 +51,19 @@ describe('matchFace', () => {
   });
 });
 
-describe('decodeFace', () => {
+describe('decodeFaces', () => {
+  const block = [0.3, 0.2, 0.4, 0.5, 0.6, 0.35, 0.4, 0.35, 0.5, 0.45, 0.58, 0.55, 0.42, 0.55];
+
   it('orders eyes and mouth corners left to right', () => {
-    const f = decodeFace([0.75, 0.3, 0.2, 0.4, 0.5, 0.6, 0.35, 0.4, 0.35, 0.5, 0.45, 0.58, 0.55, 0.42, 0.55])!;
+    const [f] = decodeFaces([0.75, 1, ...block]);
     expect(f.eyes[0].x).toBeLessThan(f.eyes[1].x);
     expect(f.mouth[0].x).toBeLessThan(f.mouth[1].x);
     expect(faceAngles(f).yaw).toBeCloseTo(0, 5);
   });
 
-  it('rejects short arrays', () => {
-    expect(decodeFace([])).toBeNull();
+  it('decodes several faces and ignores truncated blocks', () => {
+    expect(decodeFaces([0.75, 2, ...block, ...block])).toHaveLength(2);
+    expect(decodeFaces([0.75, 2, ...block])).toHaveLength(1);
+    expect(decodeFaces([0.75, 0])).toHaveLength(0);
   });
 });
