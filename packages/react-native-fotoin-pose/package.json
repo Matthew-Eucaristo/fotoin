@@ -1,0 +1,40 @@
+{
+  "name": "react-native-fotoin-pose",
+  "version": "0.1.0",
+  "description": "On-device body pose for Fotoin: Apple Vision (iOS) and Google ML Kit (Android), as a VisionCamera v5 frame plugin.",
+  "private": true,
+  "main": "src/index",
+  "react-native": "src/index",
+  "types": "src/index.ts",
+  "source": "src/index",
+  "scripts": {
+    "codegen": "nitrogen --logLevel=\"warning\""
+  },
+  "files": [
+    "src",
+    "react-native.config.js",
+    "lib",
+    "nitrogen",
+    "cpp",
+    "nitro.json",
+    "android/build.gradle",
+    "android/fix-prefab.gradle",
+    "android/gradle.properties",
+    "android/CMakeLists.txt",
+    "android/src",
+    "ios/**/*.h",
+    "ios/**/*.m",
+    "ios/**/*.mm",
+    "ios/**/*.cpp",
+    "ios/**/*.swift",
+    "*.podspec",
+    "README.md"
+  ],
+  "license": "UNLICENSED",
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*",
+    "react-native-nitro-modules": "*",
+    "react-native-vision-camera": "*"
+  }
+}

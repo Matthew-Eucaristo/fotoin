@@ -1,0 +1,30 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": [
+    "fotoinpose"
+  ],
+  "ios": {
+    "iosModuleName": "FotoinPose"
+  },
+  "android": {
+    "androidNamespace": [
+      "fotoinpose"
+    ],
+    "androidCxxLibName": "FotoinPose"
+  },
+  "autolinking": {
+    "FotoinPose": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridFotoinPose"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridFotoinPose"
+      }
+    }
+  },
+  "ignorePaths": [
+    "**/node_modules"
+  ]
+}
