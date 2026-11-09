@@ -18,6 +18,7 @@ export const copy = {
 
   ghost: 'Foto',
   skeleton: 'Pose',
+  faceGuide: 'Wajah',
   autoShoot: 'Auto',
   holdToPeek: 'Tahan untuk lihat referensi',
   grid: 'Grid',
@@ -50,6 +51,12 @@ export const copy = {
     fixLeftLeg: 'Kaki kiri subjek belum pas',
     fixRightLeg: 'Kaki kanan subjek belum pas',
     fixTorso: 'Arah badan subjek belum pas',
+    turnLeft: 'Minta subjek menoleh ke kiri layar',
+    turnRight: 'Minta subjek menoleh ke kanan layar',
+    tiltHeadLeft: 'Miringkan kepala ke kiri layar',
+    tiltHeadRight: 'Miringkan kepala ke kanan layar',
+    chinUp: 'Dagu subjek sedikit diangkat',
+    chinDown: 'Dagu subjek sedikit diturunkan',
     hold: 'Pas! Tahan…',
   } satisfies Record<ShotHint, string>,
 } as const;

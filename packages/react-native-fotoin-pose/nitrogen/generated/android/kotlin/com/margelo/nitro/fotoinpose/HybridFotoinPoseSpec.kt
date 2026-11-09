@@ -38,6 +38,14 @@ abstract class HybridFotoinPoseSpec: HybridObject() {
   @DoNotStrip
   @Keep
   abstract fun detectInImage(path: String): Promise<DoubleArray>
+  
+  @DoNotStrip
+  @Keep
+  abstract fun detectFace(frame: com.margelo.nitro.camera.HybridFrameSpec): DoubleArray
+  
+  @DoNotStrip
+  @Keep
+  abstract fun detectFaceInImage(path: String): Promise<DoubleArray>
 
   // Default implementation of `HybridObject.toString()`
   override fun toString(): String {

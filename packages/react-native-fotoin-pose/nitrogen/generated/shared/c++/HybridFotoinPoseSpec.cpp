@@ -16,6 +16,8 @@ namespace margelo::nitro::fotoinpose {
     registerHybrids(this, [](Prototype& prototype) {
       prototype.registerHybridMethod("detect", &HybridFotoinPoseSpec::detect);
       prototype.registerHybridMethod("detectInImage", &HybridFotoinPoseSpec::detectInImage);
+      prototype.registerHybridMethod("detectFace", &HybridFotoinPoseSpec::detectFace);
+      prototype.registerHybridMethod("detectFaceInImage", &HybridFotoinPoseSpec::detectFaceInImage);
     });
   }
 

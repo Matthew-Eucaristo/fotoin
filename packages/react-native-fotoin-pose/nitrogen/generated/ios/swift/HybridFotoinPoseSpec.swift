@@ -16,6 +16,8 @@ public protocol HybridFotoinPoseSpec_protocol: HybridObject {
   // Methods
   func detect(frame: (any HybridFrameSpec)) throws -> [Double]
   func detectInImage(path: String) throws -> Promise<[Double]>
+  func detectFace(frame: (any HybridFrameSpec)) throws -> [Double]
+  func detectFaceInImage(path: String) throws -> Promise<[Double]>
 }
 
 public extension HybridFotoinPoseSpec_protocol {

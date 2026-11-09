@@ -1,7 +1,8 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import { useSyncExternalStore } from 'react';
 
-import { detectPoseInImage } from '../pose/native';
+import type { FacePose } from '../pose/face';
+import { detectFaceInImage, detectPoseInImage } from '../pose/native';
 import type { BodyPose } from '../pose/pose';
 
 /**
@@ -17,6 +18,8 @@ export type ReferencePhoto = {
   createdAt: number;
   /** Null when nobody was found; the ghost overlay still works. */
   pose: BodyPose | null;
+  /** Largest face, used for close-ups where the body is not visible. */
+  face?: FacePose | null;
 };
 
 const dir = new Directory(Paths.document, 'references');
@@ -64,8 +67,8 @@ export async function addReference(sourceUri: string, width: number, height: num
   source.copy(new File(dir, file));
 
   const fallbackAspect = width > 0 && height > 0 ? width / height : 3 / 4;
-  const { pose, aspect } = await readPose(file, fallbackAspect);
-  const ref: ReferencePhoto = { id, file, aspect, createdAt: Date.now(), pose };
+  const [{ pose, aspect }, face] = await Promise.all([readPose(file, fallbackAspect), readFace(file)]);
+  const ref: ReferencePhoto = { id, file, aspect, createdAt: Date.now(), pose, face };
   emit([ref, ...items]);
   return ref;
 }
@@ -88,14 +91,33 @@ async function readPose(file: string, fallbackAspect: number): Promise<{ pose: B
   return { pose: null, aspect };
 }
 
-/** Retries pose detection for a reference saved without one. */
+async function readFace(file: string): Promise<FacePose | null> {
+  try {
+    return await detectFaceInImage(new File(dir, file).uri);
+  } catch (error) {
+    console.warn('Face detection failed', error);
+    return null;
+  }
+}
+
+/**
+ * Fills in what a saved reference is missing: the body pose when none was
+ * found, and the face when it was never read (older saves) or nothing at all
+ * was found. Runs when a reference is opened.
+ */
 export async function retryPose(id: string): Promise<ReferencePhoto | undefined> {
   load();
   const ref = items.find((r) => r.id === id);
-  if (!ref || ref.pose) return ref;
-  const { pose, aspect } = await readPose(ref.file, ref.aspect);
-  if (!pose) return ref;
-  const updated = { ...ref, pose, aspect };
+  if (!ref) return undefined;
+  const needBody = !ref.pose;
+  const needFace = ref.face === undefined || (!ref.face && !ref.pose);
+  if (!needBody && !needFace) return ref;
+
+  const [body, face] = await Promise.all([
+    needBody ? readPose(ref.file, ref.aspect) : { pose: ref.pose, aspect: ref.aspect },
+    needFace ? readFace(ref.file) : (ref.face ?? null),
+  ]);
+  const updated: ReferencePhoto = { ...ref, pose: body.pose, aspect: body.aspect, face };
   emit(items.map((r) => (r.id === id ? updated : r)));
   return updated;
 }

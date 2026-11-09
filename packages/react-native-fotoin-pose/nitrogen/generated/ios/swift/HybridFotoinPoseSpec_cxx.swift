@@ -171,4 +171,51 @@ open class HybridFotoinPoseSpec_cxx {
       return bridge.create_Result_std__shared_ptr_Promise_std__vector_double____(__exceptionPtr)
     }
   }
+  
+  @inline(__always)
+  public final func detectFace(frame: bridge.std__shared_ptr_margelo__nitro__camera__HybridFrameSpec_) -> bridge.Result_std__vector_double__ {
+    do {
+      let __result = try self.__implementation.detectFace(frame: { () -> any HybridFrameSpec in
+        let __unsafePointer = bridge.get_std__shared_ptr_margelo__nitro__camera__HybridFrameSpec_(frame)
+        let __instance = HybridFrameSpec_cxx.fromUnsafe(__unsafePointer)
+        return __instance.getHybridFrameSpec()
+      }())
+      let __resultCpp = { () -> bridge.std__vector_double_ in
+        var __vector = bridge.create_std__vector_double_(__result.count)
+        for __item in __result {
+          __vector.push_back(__item)
+        }
+        return __vector
+      }()
+      return bridge.create_Result_std__vector_double__(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_std__vector_double__(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
+  public final func detectFaceInImage(path: std.string) -> bridge.Result_std__shared_ptr_Promise_std__vector_double____ {
+    do {
+      let __result = try self.__implementation.detectFaceInImage(path: String(path))
+      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_std__vector_double___ in
+        let __promise = bridge.create_std__shared_ptr_Promise_std__vector_double___()
+        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_std__vector_double___(__promise)
+        __result
+          .then({ __result in __promiseHolder.resolve({ () -> bridge.std__vector_double_ in
+              var __vector = bridge.create_std__vector_double_(__result.count)
+              for __item in __result {
+                __vector.push_back(__item)
+              }
+              return __vector
+            }()) })
+          .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
+        return __promise
+      }()
+      return bridge.create_Result_std__shared_ptr_Promise_std__vector_double____(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_std__shared_ptr_Promise_std__vector_double____(__exceptionPtr)
+    }
+  }
 }

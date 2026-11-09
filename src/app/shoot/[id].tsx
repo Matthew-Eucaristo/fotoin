@@ -16,10 +16,13 @@ import {
 import { createSynchronizable, scheduleOnRN } from 'react-native-worklets';
 
 import { copy } from '@/copy';
+import { coverFace, decodeFace, type FacePose, matchFace } from '@/features/pose/face';
 import { matchPose, type MatchResult, NO_MATCH } from '@/features/pose/matcher';
+import { referenceMode } from '@/features/pose/mode';
 import { decodePose, FotoinPose } from '@/features/pose/native';
 import { type BodyPose, coverInto } from '@/features/pose/pose';
 import { addReference, referenceUri, retryPose, useReference } from '@/features/references/store';
+import { FaceOverlay } from '@/features/shoot/face-overlay';
 import { MatchMeter } from '@/features/shoot/match-meter';
 import { PoseOverlay } from '@/features/shoot/pose-overlay';
 import { ViewfinderGuides } from '@/features/shoot/viewfinder-guides';
@@ -34,6 +37,10 @@ const AUTO_HOLD_MS = 700;
 const FRAME_INTERVAL_MS = 80; // ~12 pose reads per second is plenty for coaching
 // Frame timestamps are seconds on iOS and nanoseconds on Android.
 const FRAME_TS_TO_MS = Platform.OS === 'ios' ? 1000 : 1 / 1e6;
+// What the frame thread analyses (numbers so they cross runtimes cheaply).
+const ANALYZE_NONE = 0;
+const ANALYZE_BODY = 1;
+const ANALYZE_FACE = 2;
 
 type Lens = { label: string; zoom: number };
 
@@ -62,14 +69,18 @@ export default function Shoot() {
   // CameraX rejects zoom changes before the session runs; only zoom once started.
   const [started, setStarted] = useState(false);
   const [live, setLive] = useState<BodyPose | null>(null);
+  const [liveFace, setLiveFace] = useState<FacePose | null>(null);
   const [match, setMatch] = useState<MatchResult>(NO_MATCH);
   const roll = useRef(0);
   const matchedSince = useRef<number | null>(null);
 
   // Viewport follows the reference shape so the shot is framed like it.
   const viewAspect = Math.min(1, Math.max(9 / 16, reference?.aspect ?? 3 / 4));
-  // React Compiler memoizes this; no manual useMemo needed.
-  const target = reference?.pose ? coverInto(reference.pose, viewAspect) : null;
+  // Full/half body matches on the skeleton; close-ups match on the face.
+  const mode = reference ? referenceMode(reference) : 'none';
+  // React Compiler memoizes these; no manual useMemo needed.
+  const target = mode === 'body' && reference?.pose ? coverInto(reference.pose, viewAspect) : null;
+  const targetFace = mode === 'face' && reference?.face ? coverFace(reference.face, viewAspect) : null;
 
   // Lenses: on iOS virtual devices zoom 1 is the ultra-wide and "1×" is the
   // first lens-switch factor; on Android "1×" is zoom 1 and minZoom < 1.
@@ -120,17 +131,26 @@ export default function Shoot() {
   });
 
   const lastFrame = useMemo(() => createSynchronizable(0), []);
-  // Pose analysis only runs when there is a reference pose to match.
-  const analyze = useMemo(() => createSynchronizable(false), []);
+  // Analysis only runs when there is something to match, and only the
+  // detector the reference needs (body or face).
+  const analyze = useMemo(() => createSynchronizable(ANALYZE_NONE), []);
   useEffect(() => {
-    analyze.setBlocking(target != null);
-  }, [analyze, target]);
+    analyze.setBlocking(mode === 'body' ? ANALYZE_BODY : mode === 'face' ? ANALYZE_FACE : ANALYZE_NONE);
+  }, [analyze, mode]);
 
-  function onPoseValues(values: number[], frameMs: number) {
-    const pose = decodePose(values);
-    setLive(pose);
-    if (!target) return;
-    const result = matchPose(pose ? coverInto(pose, viewAspect) : null, target, roll.current);
+  function onPoseValues(values: number[], frameMs: number, kind: number) {
+    let result: MatchResult = NO_MATCH;
+    if (kind === ANALYZE_BODY && target) {
+      const pose = decodePose(values);
+      setLive(pose);
+      result = matchPose(pose ? coverInto(pose, viewAspect) : null, target, roll.current);
+    } else if (kind === ANALYZE_FACE && targetFace) {
+      const face = decodeFace(values);
+      setLiveFace(face);
+      result = matchFace(face ? coverFace(face, viewAspect) : null, targetFace, roll.current);
+    } else {
+      return;
+    }
     setMatch(result);
     checkAuto(result, frameMs);
   }
@@ -144,12 +164,13 @@ export default function Shoot() {
     onFrame(frame) {
       'worklet';
       try {
-        if (!analyze.getDirty()) return;
+        const kind = analyze.getDirty();
+        if (kind === ANALYZE_NONE) return;
         const frameMs = frame.timestamp * FRAME_TS_TO_MS;
         if (frameMs - lastFrame.getDirty() < FRAME_INTERVAL_MS) return;
         lastFrame.setBlocking(frameMs);
-        const values = FotoinPose.detect(frame);
-        scheduleOnRN(onPoseValues, values, frameMs);
+        const values = kind === ANALYZE_FACE ? FotoinPose.detectFace(frame) : FotoinPose.detect(frame);
+        scheduleOnRN(onPoseValues, values, frameMs, kind);
       } catch {
         // A dropped frame is fine; the next one will be analysed.
       } finally {
@@ -183,7 +204,7 @@ export default function Shoot() {
         // The example photo becomes the reference; continue shooting with it.
         const ref = await addReference(`file://${filePath}`, 0, 0);
         router.replace({ pathname: '/shoot/[id]', params: { id: ref.id } });
-        if (!ref.pose) Alert.alert(copy.noPersonFound);
+        if (referenceMode(ref) === 'none') Alert.alert(copy.noPersonFound);
         return;
       }
       router.push({ pathname: '/review', params: { shot: `file://${filePath}`, id } });
@@ -194,9 +215,10 @@ export default function Shoot() {
 
   if (!reference && !capturingReference) return <View style={styles.screen} />;
 
-  const enabled = !!reference?.pose && !peek;
+  const enabled = mode !== 'none' && !peek;
   const isActive = focused && appActive && hasPermission;
   const liveInView = live ? coverInto(live, viewAspect) : null;
+  const liveFaceInView = liveFace ? coverFace(liveFace, viewAspect) : null;
   const cameraReady = !!device && hasPermission;
 
   return (
@@ -263,11 +285,19 @@ export default function Shoot() {
             />
           ) : null}
           {!peek ? <ViewfinderGuides grid={grid} /> : null}
-          {showPose && !peek ? (
+          {showPose && !peek && mode === 'body' ? (
             <PoseOverlay
               target={target}
               live={liveInView}
               targetColor="rgba(247,247,247,0.6)"
+              liveColor={scoreColor(match.score)}
+            />
+          ) : null}
+          {showPose && !peek && mode === 'face' ? (
+            <FaceOverlay
+              target={targetFace}
+              live={liveFaceInView}
+              targetColor="rgba(247,247,247,0.7)"
               liveColor={scoreColor(match.score)}
             />
           ) : null}
@@ -314,9 +344,9 @@ export default function Shoot() {
 
         <View style={styles.modes}>
           {reference ? <Mode label={copy.ghost} on={showGhost} onPress={() => setShowGhost((v) => !v)} /> : null}
-          {reference?.pose ? (
+          {mode !== 'none' ? (
             <>
-              <Mode label={copy.skeleton} on={showPose} onPress={() => setShowPose((v) => !v)} />
+              <Mode label={mode === 'face' ? copy.faceGuide : copy.skeleton} on={showPose} onPress={() => setShowPose((v) => !v)} />
               <Mode label={copy.autoShoot} on={auto} onPress={() => setAuto((v) => !v)} />
             </>
           ) : null}

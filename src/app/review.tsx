@@ -7,6 +7,7 @@ import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { copy } from '@/copy';
+import { referenceMode } from '@/features/pose/mode';
 import { addReference, referenceUri, useReference } from '@/features/references/store';
 import { colors, radii, type } from '@/theme';
 import { PrimaryButton, SecondaryButton } from '@/ui/buttons';
@@ -29,7 +30,7 @@ export default function Review() {
       const ref = await addReference(shot, 0, 0);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setPoseSaved(true);
-      if (!ref.pose) Alert.alert(copy.noPersonFound);
+      if (referenceMode(ref) === 'none') Alert.alert(copy.noPersonFound);
     } finally {
       setPoseSaving(false);
     }

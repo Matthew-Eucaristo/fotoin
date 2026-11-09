@@ -56,6 +56,8 @@ namespace margelo::nitro::fotoinpose {
     // Methods
     std::vector<double> detect(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) override;
     std::shared_ptr<Promise<std::vector<double>>> detectInImage(const std::string& path) override;
+    std::vector<double> detectFace(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) override;
+    std::shared_ptr<Promise<std::vector<double>>> detectFaceInImage(const std::string& path) override;
 
   private:
     jni::global_ref<JHybridFotoinPoseSpec::JavaPart> _javaPart;

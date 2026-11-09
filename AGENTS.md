@@ -28,10 +28,16 @@ not the v4 frame-processor API.
   crashed on Android 16). Same flat-array contract in
   `src/specs/FotoinPose.nitro.ts`; run `npx nitrogen` in that package after
   changing the spec.
-- Matching (`src/features/pose/matcher.ts`) is pure TS and worklet-safe:
-  limb directions for pose, torso anchor for placement, phone roll from the
-  accelerometer. Worklet closures capture functions at definition, so declare
-  helpers before callers.
+- Two match modes, picked per reference by `src/features/pose/mode.ts`:
+  body (torso visible: shoulders + hips) via `matcher.ts` (limb directions +
+  torso anchor), and face for close-ups via `face.ts` (face box placement +
+  yaw/roll/pitch from landmark geometry, so engine sign conventions don't
+  matter; eyes/mouth are sorted by screen x). Both share `placement()` and are
+  pure TS, worklet-safe, and unit-tested. Worklet closures capture functions at
+  definition, so declare helpers before callers.
+- Native module methods: `detect`/`detectInImage` (13 body joints) and
+  `detectFace`/`detectFaceInImage` (box + eyes, nose, mouth corners). The frame
+  thread runs only the detector the reference needs.
 - UI: system fonts, `expo-symbols` (SF Symbols / Material Symbols),
   `expo-glass-effect` Liquid Glass on iOS 26+ with `expo-blur` fallback
   (`src/ui/glass.tsx`), `@expo/ui` Slider, `react-native-svg` for overlays,
@@ -59,6 +65,14 @@ CocoaPods needs `LANG=en_US.UTF-8`.
 ## Gotchas
 
 - iOS Simulator has no camera: the shoot screen shows a placeholder.
+  Vision body pose also fails there ("Unable to setup request"); test on device.
+- ML Kit's first still-image run after launch can return no confident joints;
+  `readPose` tries twice and references are re-read when opened.
+- ML Kit face detection ignores faces under ~10% of the image width, so
+  full-body references usually have `face: null` and match on the body.
+- Nitro looks up the Kotlin class in `com.margelo.nitro.<namespace>`.
+- Android installs over USB on XOS need "Install via USB" in Developer options.
+- If several adb devices are connected, set `ANDROID_SERIAL`.
 - Frame timestamps are seconds on iOS and nanoseconds on Android
   (`FRAME_TS_TO_MS`). Keep `<Camera>` mounted and toggle `isActive`
   (VisionCamera #4209); always `frame.dispose()` in `finally`.

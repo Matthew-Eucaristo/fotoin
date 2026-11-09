@@ -55,6 +55,8 @@ namespace margelo::nitro::fotoinpose {
       // Methods
       virtual std::vector<double> detect(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) = 0;
       virtual std::shared_ptr<Promise<std::vector<double>>> detectInImage(const std::string& path) = 0;
+      virtual std::vector<double> detectFace(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) = 0;
+      virtual std::shared_ptr<Promise<std::vector<double>>> detectFaceInImage(const std::string& path) = 0;
 
     protected:
       // Hybrid Setup

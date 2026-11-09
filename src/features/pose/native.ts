@@ -1,5 +1,6 @@
 import { FotoinPose } from 'react-native-fotoin-pose';
 
+import { decodeFace, type FacePose } from './face';
 import { type BodyPose, JOINTS } from './pose';
 
 /** Joints below this confidence are treated as not visible. */
@@ -30,6 +31,11 @@ export function decodePose(values: number[]): BodyPose | null {
 export async function detectPoseInImage(uri: string): Promise<{ pose: BodyPose | null; aspect: number | null }> {
   const values = await FotoinPose.detectInImage(uri);
   return { pose: decodePose(values), aspect: values.length > 0 ? values[0] : null };
+}
+
+/** Reads the most prominent face in a still image (for close-ups). */
+export async function detectFaceInImage(uri: string): Promise<FacePose | null> {
+  return decodeFace(await FotoinPose.detectFaceInImage(uri));
 }
 
 export { FotoinPose };

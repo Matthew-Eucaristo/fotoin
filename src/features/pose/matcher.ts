@@ -15,6 +15,12 @@ export type ShotHint =
   | 'fixLeftLeg'
   | 'fixRightLeg'
   | 'fixTorso'
+  | 'turnLeft'
+  | 'turnRight'
+  | 'tiltHeadLeft'
+  | 'tiltHeadRight'
+  | 'chinUp'
+  | 'chinDown'
   | 'hold';
 
 export type MatchResult = {
@@ -34,6 +40,36 @@ const LEVEL_TOLERANCE_DEG = 4;
 
 // Worklet closures capture referenced functions when they are defined, so
 // helpers must be declared before the functions that call them.
+
+/**
+ * Where the subject sits in the frame versus the reference, from the
+ * photographer's side: move closer/back, pan, tilt, or level the phone.
+ * Shared by the body and face matchers. `hint` is null when placement is fine.
+ */
+export function placement(
+  live: { center: Point; size: number },
+  ref: { center: Point; size: number },
+  roll: number,
+): { score: number; levelPenalty: number; hint: ShotHint | null } {
+  'worklet';
+  const dx = live.center.x - ref.center.x;
+  const dy = live.center.y - ref.center.y;
+  const sizeRatio = ref.size <= 0 ? 1 : live.size / ref.size;
+  const error = Math.abs(dx) + Math.abs(dy) + Math.abs(Math.log(sizeRatio)) * 0.8;
+  const score = Math.max(0, 1 - error / 0.6);
+  const levelPenalty = Math.abs(roll) > LEVEL_TOLERANCE_DEG ? 0.1 : 0;
+  let hint: ShotHint | null = null;
+  if (sizeRatio > 1 + SIZE_TOLERANCE) hint = 'stepBack';
+  else if (sizeRatio < 1 - SIZE_TOLERANCE) hint = 'stepCloser';
+  // Subject sits right of the target → turn the phone right.
+  else if (dx > PLACEMENT_TOLERANCE) hint = 'panRight';
+  else if (dx < -PLACEMENT_TOLERANCE) hint = 'panLeft';
+  // Subject sits lower than the target → aim lower.
+  else if (dy > PLACEMENT_TOLERANCE) hint = 'tiltDown';
+  else if (dy < -PLACEMENT_TOLERANCE) hint = 'tiltUp';
+  else if (Math.abs(roll) > LEVEL_TOLERANCE_DEG) hint = 'holdLevel';
+  return { score, levelPenalty, hint };
+}
 
 function limbHint(limb: readonly [Joint, Joint]): ShotHint {
   'worklet';
@@ -110,32 +146,16 @@ function matchOriented(live: BodyPose, ref: BodyPose, roll: number): MatchResult
   }
   const poseScore = count === 0 ? 0 : sum / count;
 
-  const la = anchor(live);
-  const ra = anchor(ref);
-  const dx = la.center.x - ra.center.x;
-  const dy = la.center.y - ra.center.y;
-  const sizeRatio = ra.size <= 0 ? 1 : la.size / ra.size;
-  const placementError = Math.abs(dx) + Math.abs(dy) + Math.abs(Math.log(sizeRatio)) * 0.8;
-  const placementScore = Math.max(0, 1 - placementError / 0.6);
-
-  const levelPenalty = Math.abs(roll) > LEVEL_TOLERANCE_DEG ? 0.1 : 0;
-  const score = Math.min(1, Math.max(0, 0.6 * poseScore + 0.4 * placementScore - levelPenalty));
+  const place = placement(anchor(live), anchor(ref), roll);
+  const score = Math.min(1, Math.max(0, 0.6 * poseScore + 0.4 * place.score - place.levelPenalty));
 
   let hint: ShotHint;
-  if (sizeRatio > 1 + SIZE_TOLERANCE) hint = 'stepBack';
-  else if (sizeRatio < 1 - SIZE_TOLERANCE) hint = 'stepCloser';
-  // Subject sits right of the target → turn the phone right.
-  else if (dx > PLACEMENT_TOLERANCE) hint = 'panRight';
-  else if (dx < -PLACEMENT_TOLERANCE) hint = 'panLeft';
-  // Subject sits lower than the target → aim lower.
-  else if (dy > PLACEMENT_TOLERANCE) hint = 'tiltDown';
-  else if (dy < -PLACEMENT_TOLERANCE) hint = 'tiltUp';
-  else if (Math.abs(roll) > LEVEL_TOLERANCE_DEG) hint = 'holdLevel';
+  if (place.hint) hint = place.hint;
   else if (!worstLimb) hint = 'findPerson';
   else if (worstScore > 0.8) hint = 'hold';
   else hint = limbHint(worstLimb);
 
-  return { score, poseScore, placementScore, hint };
+  return { score, poseScore, placementScore: place.score, hint };
 }
 
 /**

@@ -18,4 +18,15 @@ export interface FotoinPose
   detect(frame: Frame): number[]
   /** Still image at a file path or file:// URI (EXIF orientation applied). */
   detectInImage(path: string): Promise<number[]>
+
+  /**
+   * Largest face, for close-ups where the body is not visible. Returns
+   * [aspect, boxX, boxY, boxW, boxH, then (x, y) for: eye A, eye B, nose,
+   * mouth corner A, mouth corner B] — 15 values, normalised to the upright
+   * image (origin top-left) — or an empty array when no face is found.
+   * Eye/mouth order is not guaranteed; consumers sort by x.
+   */
+  detectFace(frame: Frame): number[]
+  /** Same as detectFace, for a still image. */
+  detectFaceInImage(path: string): Promise<number[]>
 }

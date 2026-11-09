@@ -82,5 +82,36 @@ namespace margelo::nitro::fotoinpose {
       return __promise;
     }();
   }
+  std::vector<double> JHybridFotoinPoseSpec::detectFace(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JArrayDouble>(jni::alias_ref<margelo::nitro::camera::JHybridFrameSpec::JavaPart> /* frame */)>("detectFace");
+    auto __result = method(_javaPart, std::dynamic_pointer_cast<margelo::nitro::camera::JHybridFrameSpec>(frame)->getJavaPart());
+    return [&]() {
+      size_t __size = __result->size();
+      std::vector<double> __vector(__size);
+      __result->getRegion(0, __size, __vector.data());
+      return __vector;
+    }();
+  }
+  std::shared_ptr<Promise<std::vector<double>>> JHybridFotoinPoseSpec::detectFaceInImage(const std::string& path) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* path */)>("detectFaceInImage");
+    auto __result = method(_javaPart, jni::make_jstring(path));
+    return [&]() {
+      auto __promise = Promise<std::vector<double>>::create();
+      __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
+        auto __result = jni::static_ref_cast<jni::JArrayDouble>(__boxedResult);
+        __promise->resolve([&]() {
+          size_t __size = __result->size();
+          std::vector<double> __vector(__size);
+          __result->getRegion(0, __size, __vector.data());
+          return __vector;
+        }());
+      });
+      __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
+        jni::JniException __jniError(__throwable);
+        __promise->reject(std::make_exception_ptr(__jniError));
+      });
+      return __promise;
+    }();
+  }
 
 } // namespace margelo::nitro::fotoinpose

@@ -87,6 +87,22 @@ namespace margelo::nitro::fotoinpose {
       auto __value = std::move(__result.value());
       return __value;
     }
+    inline std::vector<double> detectFace(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) override {
+      auto __result = _swiftPart.detectFace(frame);
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::shared_ptr<Promise<std::vector<double>>> detectFaceInImage(const std::string& path) override {
+      auto __result = _swiftPart.detectFaceInImage(path);
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
 
   private:
     FotoinPose::HybridFotoinPoseSpec_cxx _swiftPart;

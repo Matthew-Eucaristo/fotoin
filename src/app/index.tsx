@@ -7,6 +7,7 @@ import { Alert, FlatList, Pressable, StyleSheet, Text, useWindowDimensions, View
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { copy } from '@/copy';
+import { referenceMode } from '@/features/pose/mode';
 import {
   addReference,
   type ReferencePhoto,
@@ -37,7 +38,7 @@ export default function Home() {
     setAdding(true);
     try {
       const ref = await addReference(asset.uri, asset.width, asset.height);
-      if (!ref.pose) Alert.alert(copy.noPersonFound);
+      if (referenceMode(ref) === 'none') Alert.alert(copy.noPersonFound);
       router.push({ pathname: '/shoot/[id]', params: { id: ref.id } });
     } finally {
       setAdding(false);
@@ -76,9 +77,17 @@ export default function Home() {
             style={({ pressed }) => [styles.tile, { width: tileWidth }, pressed && { opacity: 0.8 }]}
           >
             <Image source={{ uri: referenceUri(item) }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
-            {item.pose ? (
+            {referenceMode(item) !== 'none' ? (
               <View style={styles.badge}>
-                <Icon name={{ ios: 'figure.stand', android: 'accessibility_new' }} size={14} color={colors.amber} />
+                <Icon
+                  name={
+                    referenceMode(item) === 'face'
+                      ? { ios: 'face.smiling', android: 'face' }
+                      : { ios: 'figure.stand', android: 'accessibility_new' }
+                  }
+                  size={14}
+                  color={colors.amber}
+                />
               </View>
             ) : null}
           </Pressable>
