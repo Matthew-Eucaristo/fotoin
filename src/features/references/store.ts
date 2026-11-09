@@ -63,19 +63,41 @@ export async function addReference(sourceUri: string, width: number, height: num
   const file = `${id}${ext}`;
   source.copy(new File(dir, file));
 
-  let pose: BodyPose | null = null;
-  let aspect = width > 0 && height > 0 ? width / height : 3 / 4;
-  try {
-    const result = await detectPoseInImage(new File(dir, file).uri);
-    if (result.aspect) aspect = result.aspect;
-    pose = result.pose;
-  } catch {
-    pose = null;
-  }
-
+  const fallbackAspect = width > 0 && height > 0 ? width / height : 3 / 4;
+  const { pose, aspect } = await readPose(file, fallbackAspect);
   const ref: ReferencePhoto = { id, file, aspect, createdAt: Date.now(), pose };
   emit([ref, ...items]);
   return ref;
+}
+
+/**
+ * Reads the pose, trying twice: on Android the first ML Kit run after launch
+ * can come back without confident joints while the model warms up.
+ */
+async function readPose(file: string, fallbackAspect: number): Promise<{ pose: BodyPose | null; aspect: number }> {
+  let aspect = fallbackAspect;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const result = await detectPoseInImage(new File(dir, file).uri);
+      aspect = result.aspect ?? aspect;
+      if (result.pose) return { pose: result.pose, aspect };
+    } catch (error) {
+      console.warn('Pose detection failed', error);
+    }
+  }
+  return { pose: null, aspect };
+}
+
+/** Retries pose detection for a reference saved without one. */
+export async function retryPose(id: string): Promise<ReferencePhoto | undefined> {
+  load();
+  const ref = items.find((r) => r.id === id);
+  if (!ref || ref.pose) return ref;
+  const { pose, aspect } = await readPose(ref.file, ref.aspect);
+  if (!pose) return ref;
+  const updated = { ...ref, pose, aspect };
+  emit(items.map((r) => (r.id === id ? updated : r)));
+  return updated;
 }
 
 export function removeReference(id: string) {

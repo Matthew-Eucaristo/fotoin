@@ -36,13 +36,17 @@ export function PrimaryButton({
   );
 }
 
-export function SecondaryButton({ label, onPress }: { label: string; onPress: () => void }) {
+export function SecondaryButton({ label, icon, onPress }: { label: string; icon?: ReactNode; onPress: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
-      onPress={onPress}
+      onPress={() => {
+        Haptics.selectionAsync();
+        onPress();
+      }}
       style={({ pressed }) => [styles.secondary, pressed && styles.dimmed]}
     >
+      {icon}
       <Text style={styles.secondaryLabel}>{label}</Text>
     </Pressable>
   );
@@ -86,10 +90,11 @@ const styles = StyleSheet.create({
   secondary: {
     minHeight: 56,
     borderRadius: radii.control,
-    borderWidth: StyleSheet.hairlineWidth * 2,
-    borderColor: colors.inkMuted,
+    backgroundColor: colors.surfaceHigh,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 10,
     paddingHorizontal: 20,
   },
   secondaryLabel: { ...type.label, fontSize: 16, color: colors.ink },

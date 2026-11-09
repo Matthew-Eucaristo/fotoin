@@ -7,7 +7,7 @@ import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { copy } from '@/copy';
-import { referenceUri, useReference } from '@/features/references/store';
+import { addReference, referenceUri, useReference } from '@/features/references/store';
 import { colors, radii, type } from '@/theme';
 import { PrimaryButton, SecondaryButton } from '@/ui/buttons';
 import { Icon } from '@/ui/icon';
@@ -19,6 +19,21 @@ export default function Review() {
   const insets = useSafeAreaInsets();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [poseSaving, setPoseSaving] = useState(false);
+  const [poseSaved, setPoseSaved] = useState(false);
+
+  /** Keeps a shot you like as a new reference pose for later. */
+  async function savePose() {
+    setPoseSaving(true);
+    try {
+      const ref = await addReference(shot, 0, 0);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setPoseSaved(true);
+      if (!ref.pose) Alert.alert(copy.noPersonFound);
+    } finally {
+      setPoseSaving(false);
+    }
+  }
 
   async function save() {
     setSaving(true);
@@ -53,10 +68,29 @@ export default function Review() {
         ) : null}
       </View>
       <View style={styles.actions}>
-        <View style={styles.retake}>
-          <SecondaryButton label={copy.retake} onPress={() => router.back()} />
+        <View style={styles.row}>
+          <View style={styles.half}>
+            <SecondaryButton
+              label={copy.retake}
+              icon={<Icon name={{ ios: 'arrow.counterclockwise', android: 'refresh' }} size={18} />}
+              onPress={() => router.back()}
+            />
+          </View>
+          <View style={styles.half}>
+            <SecondaryButton
+              label={poseSaved ? copy.poseSaved : copy.savePose}
+              icon={
+                <Icon
+                  name={poseSaved ? { ios: 'bookmark.fill', android: 'bookmark' } : { ios: 'bookmark', android: 'bookmark_add' }}
+                  size={18}
+                  color={poseSaved ? colors.amber : colors.ink}
+                />
+              }
+              onPress={poseSaved || poseSaving ? () => {} : savePose}
+            />
+          </View>
         </View>
-        <View style={styles.save}>
+        <View>
           <PrimaryButton
             label={saved ? copy.saved : copy.save}
             loading={saving}
@@ -82,7 +116,7 @@ const styles = StyleSheet.create({
   thumbWrap: { position: 'absolute', right: 24, bottom: 16, width: 96, alignItems: 'flex-end', gap: 4 },
   thumbLabel: { ...type.caption, color: colors.ink },
   thumb: { width: 96, borderRadius: 12, borderWidth: 2, borderColor: colors.ink },
-  actions: { flexDirection: 'row', gap: 12, paddingHorizontal: 20, paddingTop: 12 },
-  retake: { flex: 1 },
-  save: { flex: 2 },
+  actions: { gap: 12, paddingHorizontal: 16, paddingTop: 12 },
+  row: { flexDirection: 'row', gap: 12 },
+  half: { flex: 1 },
 });

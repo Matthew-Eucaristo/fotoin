@@ -15,7 +15,7 @@ import {
   useReferences,
 } from '@/features/references/store';
 import { colors, radii, type } from '@/theme';
-import { PrimaryButton } from '@/ui/buttons';
+import { PrimaryButton, SecondaryButton } from '@/ui/buttons';
 import { Icon } from '@/ui/icon';
 
 export default function Home() {
@@ -85,12 +85,21 @@ export default function Home() {
         )}
       />
       <View style={[styles.bottom, { paddingBottom: insets.bottom + 12 }]}>
-        <PrimaryButton
-          label={adding ? copy.readingPose : copy.addReference}
-          loading={adding}
-          icon={<Icon name={{ ios: 'photo.badge.plus', android: 'add_photo_alternate' }} color={colors.onAmber} />}
-          onPress={add}
-        />
+        <View style={styles.bottomItem}>
+          <SecondaryButton
+            label={copy.takeExample}
+            icon={<Icon name={{ ios: 'camera', android: 'photo_camera' }} />}
+            onPress={() => router.push({ pathname: '/shoot/[id]', params: { id: 'new' } })}
+          />
+        </View>
+        <View style={styles.bottomItem}>
+          <PrimaryButton
+            label={adding ? copy.readingPose : copy.fromGallery}
+            loading={adding}
+            icon={<Icon name={{ ios: 'photo.on.rectangle', android: 'photo_library' }} color={colors.onAmber} />}
+            onPress={add}
+          />
+        </View>
       </View>
     </View>
   );
@@ -133,5 +142,6 @@ const styles = StyleSheet.create({
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, padding: 32 },
   emptyTitle: { ...type.title, color: colors.ink, textAlign: 'center' },
   emptyBody: { ...type.body, color: colors.inkMuted, textAlign: 'center' },
-  bottom: { position: 'absolute', left: 20, right: 20, bottom: 0, paddingTop: 12 },
+  bottom: { position: 'absolute', left: 16, right: 16, bottom: 0, paddingTop: 12, flexDirection: 'row', gap: 12 },
+  bottomItem: { flex: 1 },
 });

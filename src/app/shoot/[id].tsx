@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { Accelerometer } from 'expo-sensors';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, AppState, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Camera,
@@ -19,10 +19,11 @@ import { copy } from '@/copy';
 import { matchPose, type MatchResult, NO_MATCH } from '@/features/pose/matcher';
 import { decodePose, FotoinPose } from '@/features/pose/native';
 import { type BodyPose, coverInto } from '@/features/pose/pose';
-import { referenceUri, useReference } from '@/features/references/store';
+import { addReference, referenceUri, retryPose, useReference } from '@/features/references/store';
 import { MatchMeter } from '@/features/shoot/match-meter';
 import { PoseOverlay } from '@/features/shoot/pose-overlay';
-import { colors, radii, scoreColor, type } from '@/theme';
+import { ViewfinderGuides } from '@/features/shoot/viewfinder-guides';
+import { colors, scoreColor, type } from '@/theme';
 import { PrimaryButton } from '@/ui/buttons';
 import { Glass } from '@/ui/glass';
 import { Icon } from '@/ui/icon';
@@ -36,9 +37,13 @@ const FRAME_TS_TO_MS = Platform.OS === 'ios' ? 1000 : 1 / 1e6;
 
 type Lens = { label: string; zoom: number };
 
+/** `/shoot/new` captures an example photo that becomes a new reference. */
+const NEW_REFERENCE = 'new';
+
 export default function Shoot() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const reference = useReference(id);
+  const capturingReference = id === NEW_REFERENCE;
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
   const [appActive, setAppActive] = useState(AppState.currentState === 'active');
@@ -50,9 +55,12 @@ export default function Shoot() {
   const [showGhost, setShowGhost] = useState(true);
   const [showPose, setShowPose] = useState(true);
   const [auto, setAuto] = useState(true);
+  const [grid, setGrid] = useState(true);
   const [opacity, setOpacity] = useState(0.35);
   const [peek, setPeek] = useState(false);
   const [capturing, setCapturing] = useState(false);
+  // CameraX rejects zoom changes before the session runs; only zoom once started.
+  const [started, setStarted] = useState(false);
   const [live, setLive] = useState<BodyPose | null>(null);
   const [match, setMatch] = useState<MatchResult>(NO_MATCH);
   const roll = useRef(0);
@@ -81,6 +89,11 @@ export default function Shoot() {
   const oneX = lenses.findIndex((l) => l.label === '1');
   const lens = lenses[lensIndex ?? oneX];
 
+  // A reference saved without a pose gets one more read when opened.
+  useEffect(() => {
+    if (reference && !reference.pose) retryPose(reference.id);
+  }, [reference]);
+
   useEffect(() => {
     const sub = AppState.addEventListener('change', (s) => setAppActive(s === 'active'));
     return () => sub.remove();
@@ -92,7 +105,6 @@ export default function Shoot() {
   }, [device, hasPermission, requestPermission]);
 
   useEffect(() => {
-    Accelerometer.setUpdateInterval(100);
     const sub = Accelerometer.addListener(({ x, y }) => {
       // Sign conventions differ per platform; |y| keeps upright portrait ≈ 0°.
       const deg = (Math.atan2(x, Math.abs(y)) * 180) / Math.PI;
@@ -103,10 +115,16 @@ export default function Shoot() {
 
   const photoOutput = usePhotoOutput({
     targetResolution: CommonResolutions.UHD_4_3, // ~12 MP
-    qualityPrioritization: 'balanced',
+    // 'quality' gives the iPhone Camera pipeline (Deep Fusion / Smart HDR).
+    qualityPrioritization: 'quality',
   });
 
   const lastFrame = useMemo(() => createSynchronizable(0), []);
+  // Pose analysis only runs when there is a reference pose to match.
+  const analyze = useMemo(() => createSynchronizable(false), []);
+  useEffect(() => {
+    analyze.setBlocking(target != null);
+  }, [analyze, target]);
 
   function onPoseValues(values: number[], frameMs: number) {
     const pose = decodePose(values);
@@ -126,6 +144,7 @@ export default function Shoot() {
     onFrame(frame) {
       'worklet';
       try {
+        if (!analyze.getDirty()) return;
         const frameMs = frame.timestamp * FRAME_TS_TO_MS;
         if (frameMs - lastFrame.getDirty() < FRAME_INTERVAL_MS) return;
         lastFrame.setBlocking(frameMs);
@@ -157,34 +176,56 @@ export default function Shoot() {
   async function capture() {
     if (capturing) return;
     setCapturing(true);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
       const { filePath } = await photoOutput.capturePhotoToFile({}, {});
+      if (capturingReference) {
+        // The example photo becomes the reference; continue shooting with it.
+        const ref = await addReference(`file://${filePath}`, 0, 0);
+        router.replace({ pathname: '/shoot/[id]', params: { id: ref.id } });
+        if (!ref.pose) Alert.alert(copy.noPersonFound);
+        return;
+      }
       router.push({ pathname: '/review', params: { shot: `file://${filePath}`, id } });
     } finally {
       setCapturing(false);
     }
   }
 
-  if (!reference) return <View style={styles.screen} />;
+  if (!reference && !capturingReference) return <View style={styles.screen} />;
 
-  const enabled = !!reference.pose && !peek;
+  const enabled = !!reference?.pose && !peek;
   const isActive = focused && appActive && hasPermission;
   const liveInView = live ? coverInto(live, viewAspect) : null;
+  const cameraReady = !!device && hasPermission;
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      {/* Top bar: close + the one thing to fix next. */}
       <View style={styles.topBar}>
-        <Glass style={styles.round} interactive>
-          <Pressable accessibilityRole="button" accessibilityLabel={copy.close} onPress={() => router.back()} style={styles.roundHit}>
-            <Icon name={{ ios: 'xmark', android: 'close' }} size={18} />
-          </Pressable>
-        </Glass>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={copy.close}
+          hitSlop={8}
+          onPress={() => router.back()}
+          style={styles.close}
+        >
+          <Icon name={{ ios: 'xmark', android: 'close' }} size={18} />
+        </Pressable>
         <View style={styles.meterSlot}>
-          <MatchMeter result={match} enabled={enabled} />
+          {capturingReference ? (
+            <Glass style={styles.notice}>
+              <Text style={styles.noticeText} numberOfLines={2}>
+                {copy.exampleHint}
+              </Text>
+            </Glass>
+          ) : (
+            <MatchMeter result={match} enabled={enabled} />
+          )}
         </View>
       </View>
 
+      {/* Viewfinder */}
       <View style={styles.viewportSlot}>
         <Pressable
           onLongPress={() => {
@@ -195,30 +236,33 @@ export default function Shoot() {
           delayLongPress={250}
           style={[styles.viewport, { aspectRatio: viewAspect }]}
         >
-          {device && hasPermission ? (
+          {cameraReady ? (
             <Camera
               style={StyleSheet.absoluteFill}
               device={device}
               isActive={isActive}
               outputs={[photoOutput, frameOutput]}
               constraints={[{ resolutionBias: photoOutput }]}
-              zoom={lens?.zoom ?? 1}
+              zoom={started ? (lens?.zoom ?? 1) : undefined}
+              onStarted={() => setStarted(true)}
+              onStopped={() => setStarted(false)}
               resizeMode="cover"
               orientationSource="interface"
             />
           ) : (
             <Placeholder
-              message={!device ? copy.noCamera : !hasPermission ? copy.cameraDenied : null}
+              message={!device ? copy.noCamera : copy.cameraDenied}
               onAllow={device && !hasPermission ? () => Linking.openSettings() : undefined}
             />
           )}
-          {showGhost || peek ? (
+          {reference && (showGhost || peek) ? (
             <Image
               source={{ uri: referenceUri(reference) }}
               style={[StyleSheet.absoluteFill, { opacity: peek ? 1 : opacity }]}
               contentFit="cover"
             />
           ) : null}
+          {!peek ? <ViewfinderGuides grid={grid} /> : null}
           {showPose && !peek ? (
             <PoseOverlay
               target={target}
@@ -227,87 +271,108 @@ export default function Shoot() {
               liveColor={scoreColor(match.score)}
             />
           ) : null}
-        </Pressable>
-      </View>
+          {capturing ? <View style={styles.flash} /> : null}
 
-      <View style={styles.controls}>
-        {showGhost ? (
-          <View style={styles.sliderRow}>
-            <Icon name={{ ios: 'circle.lefthalf.filled', android: 'opacity' }} size={18} color={colors.inkMuted} />
-            <Slider style={styles.slider} value={opacity} min={0.1} max={0.8} onValueChange={setOpacity} />
-          </View>
-        ) : null}
-        <View style={styles.toggles}>
-          <Toggle label={copy.ghost} on={showGhost} onPress={() => setShowGhost((v) => !v)} />
-          {reference.pose ? (
-            <>
-              <Toggle label={copy.skeleton} on={showPose} onPress={() => setShowPose((v) => !v)} />
-              <Toggle label={copy.autoShoot} on={auto} onPress={() => setAuto((v) => !v)} />
-            </>
-          ) : null}
-        </View>
-        <View style={styles.shutterRow}>
-          <View style={styles.lensSlot}>
-            {lenses.length > 1 ? (
-              <Glass style={styles.lensPicker}>
+          {/* Zoom pills, centred at the bottom of the viewfinder like iPhone Camera. */}
+          {lenses.length > 1 ? (
+            <View style={styles.zoomRow} pointerEvents="box-none">
+              <View style={styles.zoomTrack}>
                 {lenses.map((l, i) => {
                   const selected = l === lens;
                   return (
                     <Pressable
                       key={l.label}
                       accessibilityRole="button"
+                      accessibilityLabel={`${l.label}×`}
                       accessibilityState={{ selected }}
                       onPress={() => {
                         Haptics.selectionAsync();
                         setLensIndex(i);
                       }}
-                      style={[styles.lens, selected && styles.lensSelected]}
+                      style={[styles.zoom, selected && styles.zoomSelected]}
                     >
-                      <Text style={[styles.lensText, selected && { color: colors.amber }]}>
+                      <Text style={[styles.zoomText, selected && styles.zoomTextSelected]}>
                         {selected ? `${l.label}×` : l.label}
                       </Text>
                     </Pressable>
                   );
                 })}
-              </Glass>
+              </View>
+            </View>
+          ) : null}
+        </Pressable>
+      </View>
+
+      {/* Controls */}
+      <View style={styles.controls}>
+        {reference && showGhost ? (
+          <View style={styles.sliderRow}>
+            <Icon name={{ ios: 'circle.lefthalf.filled', android: 'opacity' }} size={16} color={colors.inkMuted} />
+            <Slider style={styles.slider} value={opacity} min={0.1} max={0.8} onValueChange={setOpacity} />
+          </View>
+        ) : null}
+
+        <View style={styles.modes}>
+          {reference ? <Mode label={copy.ghost} on={showGhost} onPress={() => setShowGhost((v) => !v)} /> : null}
+          {reference?.pose ? (
+            <>
+              <Mode label={copy.skeleton} on={showPose} onPress={() => setShowPose((v) => !v)} />
+              <Mode label={copy.autoShoot} on={auto} onPress={() => setAuto((v) => !v)} />
+            </>
+          ) : null}
+          <Mode label={copy.grid} on={grid} onPress={() => setGrid((v) => !v)} />
+        </View>
+
+        <View style={styles.shutterRow}>
+          <View style={styles.side}>
+            {reference ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={copy.holdToPeek}
+                onPressIn={() => setPeek(true)}
+                onPressOut={() => setPeek(false)}
+              >
+                <Image source={{ uri: referenceUri(reference) }} style={styles.thumb} contentFit="cover" />
+              </Pressable>
             ) : null}
           </View>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={copy.shutter}
-            disabled={!device || !hasPermission || capturing}
+            disabled={!cameraReady || capturing}
             onPress={capture}
-            style={({ pressed }) => [styles.shutter, pressed && { transform: [{ scale: 0.94 }] }]}
+            style={({ pressed }) => [styles.shutter, pressed && styles.shutterPressed]}
           >
-            <View style={[styles.shutterInner, (!device || !hasPermission) && { backgroundColor: colors.inkMuted }]} />
+            <View style={[styles.shutterInner, !cameraReady && { backgroundColor: colors.inkMuted }]} />
           </Pressable>
-          <View style={styles.lensSlot} />
+          <View style={styles.side} />
         </View>
       </View>
     </View>
   );
 }
 
-function Toggle({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+/** iPhone Camera–style mode label: yellow when on. */
+function Mode({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
   return (
     <Pressable
       accessibilityRole="switch"
       accessibilityState={{ checked: on }}
+      hitSlop={10}
       onPress={() => {
         Haptics.selectionAsync();
         onPress();
       }}
-      style={[styles.toggle, on && styles.toggleOn]}
     >
-      <Text style={[styles.toggleText, on && { color: colors.onAmber }]}>{label}</Text>
+      <Text style={[styles.mode, on && styles.modeOn]}>{label.toUpperCase()}</Text>
     </Pressable>
   );
 }
 
-function Placeholder({ message, onAllow }: { message: string | null; onAllow?: () => void }) {
+function Placeholder({ message, onAllow }: { message: string; onAllow?: () => void }) {
   return (
     <View style={styles.placeholder}>
-      {message ? <Text style={styles.placeholderText}>{message}</Text> : null}
+      <Text style={styles.placeholderText}>{message}</Text>
       {onAllow ? <PrimaryButton label={copy.openSettings} onPress={onAllow} /> : null}
     </View>
   );
@@ -315,46 +380,59 @@ function Placeholder({ message, onAllow }: { message: string | null; onAllow?: (
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000' },
-  topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10 },
-  round: { width: 44, height: 44, borderRadius: 22 },
-  roundHit: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  meterSlot: { flex: 1 },
-  viewportSlot: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
-  viewport: {
-    width: '100%',
-    maxHeight: '100%',
-    borderRadius: radii.panel,
-    overflow: 'hidden',
-    backgroundColor: colors.surface,
-  },
-  placeholder: { position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 32 },
-  placeholderText: { ...type.body, color: colors.inkMuted, textAlign: 'center' },
-  controls: { paddingHorizontal: 16, paddingTop: 10, gap: 12 },
-  sliderRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  slider: { flex: 1, height: 36 },
-  toggles: { flexDirection: 'row', justifyContent: 'center', gap: 8 },
-  toggle: {
-    minHeight: 36,
-    paddingHorizontal: 16,
-    borderRadius: 999,
-    backgroundColor: colors.surfaceHigh,
+  topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8 },
+  close: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  toggleOn: { backgroundColor: colors.amber },
-  toggleText: { ...type.label, color: colors.ink },
-  shutterRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 },
-  lensSlot: { flex: 1, alignItems: 'flex-start' },
-  lensPicker: { flexDirection: 'row', padding: 4, borderRadius: 999 },
-  lens: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  lensSelected: { backgroundColor: 'rgba(255,255,255,0.12)' },
-  lensText: { ...type.caption, fontWeight: '800', color: colors.ink },
-  shutter: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
-    borderWidth: 4,
-    borderColor: colors.ink,
-    padding: 5,
+  meterSlot: { flex: 1 },
+  notice: { borderRadius: 22, paddingHorizontal: 16, paddingVertical: 10, alignSelf: 'flex-start' },
+  noticeText: { ...type.label, color: colors.ink },
+  viewportSlot: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  viewport: { width: '100%', maxHeight: '100%', overflow: 'hidden', backgroundColor: '#0b0b0b' },
+  flash: { position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)' },
+  placeholder: { position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 32 },
+  placeholderText: { ...type.body, color: colors.inkMuted, textAlign: 'center' },
+  zoomRow: { position: 'absolute', left: 0, right: 0, bottom: 14, alignItems: 'center' },
+  zoomTrack: {
+    flexDirection: 'row',
+    gap: 6,
+    padding: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.35)',
   },
-  shutterInner: { flex: 1, borderRadius: 999, backgroundColor: colors.ink },
+  zoom: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(30,30,30,0.6)',
+  },
+  zoomSelected: { width: 42, height: 42, borderRadius: 21, margin: -3 },
+  zoomText: { fontSize: 11, fontWeight: '700', color: colors.ink, fontVariant: ['tabular-nums'] },
+  zoomTextSelected: { fontSize: 13, color: colors.level },
+  controls: { paddingHorizontal: 20, paddingTop: 10, gap: 14 },
+  sliderRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  slider: { flex: 1, height: 32 },
+  modes: { flexDirection: 'row', justifyContent: 'center', gap: 22 },
+  mode: { fontSize: 13, fontWeight: '600', letterSpacing: 1.2, color: colors.ink, opacity: 0.85 },
+  modeOn: { color: colors.level, opacity: 1 },
+  shutterRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 8 },
+  side: { width: 56, alignItems: 'center' },
+  thumb: { width: 48, height: 48, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)' },
+  shutter: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 4,
+    borderColor: '#fff',
+    padding: 4,
+  },
+  shutterPressed: { transform: [{ scale: 0.92 }] },
+  shutterInner: { flex: 1, borderRadius: 999, backgroundColor: '#fff' },
 });

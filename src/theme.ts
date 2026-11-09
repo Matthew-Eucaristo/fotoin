@@ -14,6 +14,8 @@ export const colors = {
   onAmber: '#1A1A1A',
   teal: '#2FA7A1',
   danger: '#FF6B5E',
+  /** iOS Camera's yellow, used for the level line and active modes. */
+  level: '#FFD60A',
   scrim: 'rgba(0,0,0,0.35)',
 } as const;
 
