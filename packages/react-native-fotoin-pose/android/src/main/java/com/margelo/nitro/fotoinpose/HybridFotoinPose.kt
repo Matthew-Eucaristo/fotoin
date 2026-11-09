@@ -1,4 +1,4 @@
-package com.fotoinpose
+package com.margelo.nitro.fotoinpose
 
 import android.net.Uri
 import androidx.annotation.OptIn
@@ -13,7 +13,6 @@ import com.margelo.nitro.NitroModules
 import com.margelo.nitro.camera.HybridFrameSpec
 import com.margelo.nitro.camera.public.NativeFrame
 import com.margelo.nitro.core.Promise
-import com.margelo.nitro.fotoinpose.HybridFotoinPoseSpec
 import java.io.File
 import java.util.concurrent.TimeUnit
 
