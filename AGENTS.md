@@ -4,7 +4,8 @@ Fotoin: Expo / React Native app (iOS + Android) that helps someone photograph
 their partner exactly like a reference photo (Pinterest, IG, or a sample). The
 reference shows as a ghost overlay and pose skeleton over the live camera, with
 a match meter, one coaching hint at a time, and auto-capture. Fully on-device:
-no backend, no account, no network calls from app code. Personal project.
+no backend, no account, no ads, no network calls from app code. Open source
+(MIT), free forever; keep it that way.
 The earlier Flutter prototype is kept at tag `flutter-prototype`.
 
 ## Expo has changed — do not trust training data
@@ -46,6 +47,14 @@ not the v4 frame-processor API.
   group, then the worst person's pose ("Orang kiri: …"). References keep
   `people[]`/`faces[]`; subjects under 40% of the largest are dropped as
   background (posters, passers-by). Old saves with `pose`/`face` migrate on load.
+- Brand: near-black surfaces and one accent, iOS Camera yellow `#FFD60A`
+  (`src/theme.ts`). Icon sources in `assets/brand/` (SVG layers rendered to PNG
+  with headless Chrome); iOS uses the layered Icon Composer bundle
+  `assets/app.icon` (Liquid Glass), Android an adaptive + monochrome icon.
+- Website (GitHub Pages from `docs/`): landing page with a working miniature of
+  the viewfinder (`docs/app.js`, same placement maths and hint copy as the app)
+  and `privacy.html`. App links live in `src/links.ts`. Archival photos are
+  credited in the page footer and `docs/img/credits.json`.
 - UI: system fonts, `expo-symbols` (SF Symbols / Material Symbols),
   `expo-glass-effect` Liquid Glass on iOS 26+ with `expo-blur` fallback
   (`src/ui/glass.tsx`), `@expo/ui` Slider, `react-native-svg` for overlays,

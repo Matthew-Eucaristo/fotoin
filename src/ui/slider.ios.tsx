@@ -10,7 +10,7 @@ import type { SliderProps } from './slider';
 export function Slider({ value, min, max, onValueChange, style }: SliderProps & { style?: StyleProp<ViewStyle> }) {
   return (
     <Host style={style}>
-      <SwiftUISlider value={value} min={min} max={max} onValueChange={onValueChange} modifiers={[tint(colors.amber)]} />
+      <SwiftUISlider value={value} min={min} max={max} onValueChange={onValueChange} modifiers={[tint(colors.accent)]} />
     </Host>
   );
 }

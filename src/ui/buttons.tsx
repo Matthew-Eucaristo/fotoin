@@ -30,7 +30,7 @@ export function PrimaryButton({
       }}
       style={({ pressed }) => [styles.primary, (pressed || inactive) && styles.dimmed]}
     >
-      {loading ? <ActivityIndicator color={colors.onAmber} /> : icon}
+      {loading ? <ActivityIndicator color={colors.onAccent} /> : icon}
       <Text style={styles.primaryLabel}>{label}</Text>
     </Pressable>
   );
@@ -79,14 +79,14 @@ const styles = StyleSheet.create({
   primary: {
     minHeight: 56,
     borderRadius: radii.control,
-    backgroundColor: colors.amber,
+    backgroundColor: colors.accent,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
     paddingHorizontal: 20,
   },
-  primaryLabel: { ...type.label, fontSize: 16, color: colors.onAmber },
+  primaryLabel: { ...type.label, fontSize: 16, color: colors.onAccent },
   secondary: {
     minHeight: 56,
     borderRadius: radii.control,

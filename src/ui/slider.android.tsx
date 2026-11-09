@@ -14,7 +14,7 @@ export function Slider({ value, min, max, onValueChange, style }: SliderProps & 
         min={min}
         max={max}
         onValueChange={onValueChange}
-        colors={{ thumbColor: colors.amber, activeTrackColor: colors.amber, inactiveTrackColor: colors.surfaceHigh }}
+        colors={{ thumbColor: colors.accent, activeTrackColor: colors.accent, inactiveTrackColor: colors.surfaceHigh }}
       />
     </Host>
   );

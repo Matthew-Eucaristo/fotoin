@@ -1,0 +1,1124 @@
+/* Fotoin site. Tokens mirror the app: near-black ground, one accent (camera yellow). */
+:root {
+  --ground: #0b0b0c;
+  --surface: #1a1a1c;
+  --raised: #2a2a2d;
+  --ink: #f5f5f7;
+  --muted: #b4b4b9;
+  --accent: #ffd60a;
+  --on-accent: #111111;
+  --paper: #ececea;
+  --paper-ink: #151515;
+  --paper-muted: #55554f;
+
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Five sizes: display, heading, statement, body, small. */
+  --step-display: clamp(56px, 7.4vw, 128px);
+  --step-heading: clamp(30px, 3vw, 44px);
+  --step-statement: clamp(22px, 2.1vw, 30px);
+  --step-body: 18px;
+  --step-small: 15px;
+
+  --margin: 12px;
+  --page: clamp(20px, 4vw, 64px);
+  --radius: 20px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--step-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+/* ---- Split stage ------------------------------------------------------- */
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--page);
+  padding: var(--margin) var(--page);
+}
+
+.read {
+  min-width: 0;
+}
+
+.stage-col {
+  position: sticky;
+  top: var(--margin);
+  height: calc(100svh - 2 * var(--margin));
+  min-height: 560px;
+}
+
+/* ---- Navigation -------------------------------------------------------- */
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 var(--page);
+  height: 72px;
+  font-size: var(--step-small);
+}
+
+/* On the split page the bar sits over the reading column only. */
+.split + .nav,
+body > .nav:first-child {
+  position: absolute;
+  top: var(--margin);
+  left: 0;
+  width: calc(50% - var(--page) / 2);
+  z-index: 2;
+}
+
+.doc ~ .nav,
+body:has(.doc) > .nav {
+  position: static;
+  width: auto;
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: var(--step-body);
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.nav-tag {
+  margin-left: 6px;
+  font-family: var(--font);
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--muted);
+  font-size: var(--step-small);
+}
+
+.wordmark img {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 22px;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: var(--muted);
+  transition: color 160ms var(--ease);
+}
+
+.nav-links a:hover {
+  color: var(--ink);
+}
+
+/* ---- Hero -------------------------------------------------------------- */
+
+.hero {
+  min-height: calc(100svh - 2 * var(--margin));
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.hero-copy {
+  margin: auto 0;
+}
+
+.hero h1 {
+  font-family: var(--display);
+  font-size: var(--step-display);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.92;
+}
+
+.hero .lede {
+  margin-top: 36px;
+  max-width: 34ch;
+  font-size: var(--step-statement);
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.actions {
+  margin-top: 36px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 22px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 0 28px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+  font-size: var(--step-body);
+  text-decoration: none;
+  transition: transform 160ms var(--ease), background-color 160ms var(--ease);
+}
+
+.button:hover {
+  background: #ffe24d;
+}
+
+.button:active {
+  transform: scale(0.96);
+}
+
+.text-link {
+  font-weight: 600;
+  text-underline-offset: 4px;
+  transition: color 160ms var(--ease);
+}
+
+.text-link:hover {
+  color: var(--accent);
+}
+
+.hero-foot {
+  padding: 0 0 28px;
+  color: var(--muted);
+  font-size: var(--step-small);
+  max-width: 46ch;
+}
+
+/* ---- Reading sections -------------------------------------------------- */
+
+.chapter {
+  padding: 160px 0 0;
+}
+
+.chapter h2 {
+  font-family: var(--display);
+  font-size: var(--step-heading);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+/* How it works: one statement per screen, the stage follows. */
+.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  min-height: 70svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 30ch;
+  transition: color 320ms var(--ease);
+  color: var(--muted);
+}
+
+.step.is-active {
+  color: var(--ink);
+}
+
+.step h3 {
+  font-size: var(--step-statement);
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  font-weight: 700;
+}
+
+.step p {
+  margin-top: 14px;
+  font-size: var(--step-body);
+}
+
+/* Modes: the reading half holds a large figure per mode. */
+.modes {
+  margin-top: 56px;
+  display: grid;
+  gap: 72px;
+}
+
+.mode {
+  display: grid;
+  gap: 10px;
+  max-width: 40ch;
+}
+
+.mode-figure {
+  font-family: var(--display);
+  font-size: var(--step-display);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.9;
+  color: var(--accent);
+}
+
+.mode h3 {
+  font-size: var(--step-statement);
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.mode-hint {
+  color: var(--muted);
+  font-size: var(--step-small);
+}
+
+/* Letter */
+.letter {
+  max-width: 34em;
+}
+
+.letter h2 {
+  margin-bottom: 40px;
+}
+
+.letter p + p {
+  margin-top: 1.1em;
+}
+
+.letter mark {
+  background: var(--accent);
+  color: var(--on-accent);
+  padding: 0 4px;
+}
+
+.signoff {
+  margin-top: 36px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.signoff img {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+}
+
+.signoff strong {
+  display: block;
+  font-size: var(--step-body);
+}
+
+.signoff span {
+  color: var(--muted);
+  font-size: var(--step-small);
+}
+
+.read-end {
+  height: 18svh;
+}
+
+/* ---- Price list (full width, breaks the split) -------------------------- */
+
+.menu-band {
+  padding: 200px var(--page) 160px;
+  display: grid;
+  justify-items: center;
+}
+
+.menu {
+  width: min(640px, 100%);
+  background: var(--paper);
+  color: var(--paper-ink);
+  padding: 72px clamp(24px, 5vw, 64px) 64px;
+  --zig: 14px;
+  clip-path: polygon(
+    0 var(--zig), 5% 0, 10% var(--zig), 15% 0, 20% var(--zig), 25% 0, 30% var(--zig), 35% 0, 40% var(--zig), 45% 0,
+    50% var(--zig), 55% 0, 60% var(--zig), 65% 0, 70% var(--zig), 75% 0, 80% var(--zig), 85% 0, 90% var(--zig), 95% 0,
+    100% var(--zig),
+    100% calc(100% - var(--zig)), 95% 100%, 90% calc(100% - var(--zig)), 85% 100%, 80% calc(100% - var(--zig)),
+    75% 100%, 70% calc(100% - var(--zig)), 65% 100%, 60% calc(100% - var(--zig)), 55% 100%,
+    50% calc(100% - var(--zig)), 45% 100%, 40% calc(100% - var(--zig)), 35% 100%, 30% calc(100% - var(--zig)),
+    25% 100%, 20% calc(100% - var(--zig)), 15% 100%, 10% calc(100% - var(--zig)), 5% 100%, 0 calc(100% - var(--zig))
+  );
+}
+
+.menu h2 {
+  text-align: center;
+  font-family: var(--display);
+  font-size: var(--step-heading);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.menu > p {
+  margin: 14px auto 0;
+  text-align: center;
+  max-width: 34ch;
+  color: var(--paper-muted);
+  font-size: var(--step-small);
+}
+
+.menu-group {
+  margin-top: 48px;
+}
+
+.menu-group h3 {
+  font-size: var(--step-body);
+  font-weight: 800;
+  margin-bottom: 18px;
+}
+
+.menu-item + .menu-item {
+  margin-top: 18px;
+}
+
+.menu-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: var(--step-body);
+  font-weight: 600;
+}
+
+.menu-row .leader {
+  flex: 1;
+  border-bottom: 4px dotted var(--paper-ink);
+  opacity: 0.35;
+  transform: translateY(-5px);
+}
+
+.menu-row .value {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.menu-item p {
+  margin-top: 4px;
+  max-width: 36ch;
+  color: var(--paper-muted);
+  font-size: var(--step-small);
+  line-height: 1.45;
+}
+
+/* ---- Closing field ----------------------------------------------------- */
+
+.closing {
+  background: var(--accent);
+  color: var(--on-accent);
+  min-height: 76svh;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 24px;
+  padding: 96px var(--page);
+  align-items: center;
+}
+
+.closing-copy {
+  grid-column: 1 / 7;
+  align-self: end;
+}
+
+.closing h2 {
+  font-family: var(--display);
+  font-size: var(--step-display);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.92;
+}
+
+.closing-copy p {
+  margin-top: 24px;
+  max-width: 38ch;
+  font-size: var(--step-body);
+}
+
+.closing .button {
+  background: var(--on-accent);
+  color: var(--accent);
+}
+
+.closing .button:hover {
+  background: #2a2a2a;
+}
+
+/* The app's own first screen, as a fragment. */
+.app-screen {
+  grid-column: 8 / 12;
+  justify-self: center;
+  width: min(380px, 100%);
+  background: #0b0b0c;
+  color: #f5f5f7;
+  border-radius: 36px;
+  padding: 36px 22px 22px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35); /* taste-skill-ignore: the app's own UI (data-ui fragment) */
+}
+
+.app-screen .app-title {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.app-screen .app-sub {
+  margin-top: 8px;
+  color: #a1a1a6;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.app-steps {
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 18px;
+}
+
+.app-steps li {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 12px;
+  font-size: 15px;
+  color: #a1a1a6;
+  line-height: 1.4;
+}
+
+.app-steps b {
+  display: block;
+  color: #f5f5f7;
+  font-size: 16px;
+}
+
+.app-steps .num {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #ffd60a;
+  color: #111;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.app-buttons {
+  margin-top: 30px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.app-buttons a {
+  min-height: 52px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+  transition: transform 160ms var(--ease);
+}
+
+.app-buttons a:active {
+  transform: scale(0.96);
+}
+
+.app-buttons .secondary {
+  background: #2a2a2d;
+  color: #f5f5f7;
+}
+
+.app-buttons .primary {
+  background: #ffd60a;
+  color: #111;
+}
+
+/* ---- Footer ------------------------------------------------------------ */
+
+.footer {
+  padding: 160px var(--page) 30px;
+  font-size: var(--step-small);
+  color: var(--muted);
+}
+
+.footer-line {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 24px;
+  align-items: baseline;
+}
+
+.footer-line nav {
+  display: flex;
+  gap: 24px;
+}
+
+.footer-line a {
+  color: var(--ink);
+}
+
+.footer-line .right {
+  text-align: right;
+}
+
+.credits {
+  margin-top: 28px;
+  max-width: 110ch;
+  font-size: var(--step-small);
+  line-height: 1.5;
+}
+
+/* ---- Viewfinder (the app's own interface, built in HTML) ---------------- */
+
+.stage {
+  position: relative;
+  height: 100%;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+}
+
+.vf-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px 10px;
+}
+
+.vf-close {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.meter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 18px 6px 6px;
+  border-radius: 999px;
+  background: #1c1c1e;
+  min-width: 0;
+}
+
+.ring {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex: none;
+}
+
+.ring svg {
+  width: 40px;
+  height: 40px;
+  transform: rotate(-90deg);
+}
+
+.ring .track {
+  stroke: rgba(255, 255, 255, 0.2);
+}
+
+.ring .fill {
+  stroke: var(--score, #fff);
+  transition: stroke-dashoffset 220ms var(--ease), stroke 220ms var(--ease);
+}
+
+.ring b {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.meter-hint {
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.viewport {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  background: #0b0b0c;
+  touch-action: none;
+  cursor: grab;
+}
+
+.viewport.is-dragging {
+  cursor: grabbing;
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.6s var(--ease);
+}
+
+.scene.is-on {
+  opacity: 1;
+}
+
+.scene img.photo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none;
+  transform-origin: 0 0;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.scene .cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scene .ghost {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.guides {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.guides i {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.guides .gv {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.guides .gh {
+  left: 0;
+  right: 0;
+  height: 1px; /* taste-skill-ignore: the app's own UI (data-ui fragment) */
+}
+
+.guides .level {
+  left: 50%;
+  top: 50%;
+  width: 110px;
+  height: 2px;
+  margin: -1px 0 0 -55px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+.flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.flash.is-firing {
+  animation: flash 420ms ease-out;
+}
+
+@keyframes flash {
+  0% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.reference-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 58%;
+  aspect-ratio: 3 / 4;
+  transform: translate(-50%, -50%) rotate(-3deg);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); /* taste-skill-ignore: the app's own UI (data-ui fragment) */
+}
+
+.reference-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.reference-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(17, 17, 17, 0.85);
+  display: grid;
+  place-items: center;
+}
+
+.zoom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 14px;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.zoom-track {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  pointer-events: auto;
+}
+
+.zoom button {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 0;
+  background: rgba(30, 30, 30, 0.75);
+  color: #fff;
+  font: 700 13px var(--font);
+  cursor: pointer;
+  transition: transform 120ms var(--ease), color 120ms var(--ease);
+}
+
+.zoom button:hover {
+  color: var(--accent);
+}
+
+.zoom button:active {
+  transform: scale(0.92);
+}
+
+.vf-bottom {
+  padding: 14px 18px 18px;
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+}
+
+.vf-modes {
+  display: flex;
+  gap: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+}
+
+.shutter {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: 4px solid #fff;
+  padding: 4px;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 140ms var(--ease);
+}
+
+.shutter span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.shutter:active {
+  transform: scale(0.9);
+}
+
+.vf-caption {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 64px;
+  text-align: center;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+  transition: opacity 300ms var(--ease);
+}
+
+/* ---- Entrances --------------------------------------------------------- */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 700ms var(--ease), transform 700ms var(--ease);
+}
+
+.reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+.no-js .reveal {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---- Privacy page ------------------------------------------------------ */
+
+.doc {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 0 24px 120px;
+}
+
+.doc h1 {
+  font-family: var(--display);
+  font-size: clamp(40px, 6vw, 72px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin: 96px 0 24px;
+}
+
+.doc h2 {
+  font-size: 24px;
+  margin: 56px 0 12px;
+  letter-spacing: -0.01em;
+}
+
+.doc p,
+.doc li {
+  color: var(--ink);
+}
+
+.doc p + p {
+  margin-top: 1em;
+}
+
+.doc ul {
+  padding-left: 1.2em;
+}
+
+.doc .updated {
+  color: var(--muted);
+  font-size: var(--step-small);
+}
+
+/* ---- Phone ------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  :root {
+    --step-display: 15vw;
+  }
+
+  .split {
+    grid-template-columns: 1fr;
+  }
+
+  body > .nav:first-child {
+    position: static;
+    width: auto;
+  }
+
+  .stage-col {
+    order: -1;
+    position: relative;
+    top: 0;
+    height: 54svh;
+    min-height: 420px;
+    z-index: 0;
+  }
+
+  .split {
+    padding: var(--margin);
+    gap: 0;
+  }
+
+  .read {
+    position: relative;
+    z-index: 1;
+    background: var(--ground);
+    padding: 0 8px;
+  }
+
+  .hero {
+    min-height: 0;
+  }
+
+  .hero-copy {
+    margin-top: 28px;
+  }
+
+
+  .actions .button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .hero-foot {
+    margin-top: 32px;
+  }
+
+  .chapter {
+    padding-top: 120px;
+  }
+
+  .step {
+    min-height: 0;
+    max-width: none;
+    padding: 56px 0;
+    color: var(--ink);
+  }
+
+  .mode,
+  .letter {
+    max-width: none;
+  }
+
+  .nav-links {
+    gap: 18px;
+  }
+
+  .nav-links a:not([href$="privacy.html"]) {
+    display: none;
+  }
+
+  .menu-band {
+    padding: 140px var(--margin);
+  }
+
+  .closing {
+    grid-template-columns: 1fr;
+    min-height: 84svh;
+    padding: 72px 16px 32px;
+  }
+
+  .closing-copy,
+  .app-screen {
+    grid-column: 1;
+  }
+
+
+  .closing .button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .footer {
+    padding-top: 20svh;
+  }
+
+  .footer-line {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .footer-line .right {
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .scene,
+  .reveal,
+  .step,
+  .ring .fill {
+    transition: none;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+
+  .flash.is-firing {
+    animation: none;
+  }
+}

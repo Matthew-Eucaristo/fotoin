@@ -56,10 +56,21 @@ export default function Home() {
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title} accessibilityRole="header">
-          {copy.homeTitle}
-        </Text>
-        <Text style={styles.subtitle}>{copy.homeSubtitle}</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title} accessibilityRole="header">
+            {copy.homeTitle}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={copy.about}
+            hitSlop={10}
+            onPress={() => router.push('/about')}
+            style={({ pressed }) => [styles.infoButton, pressed && { opacity: 0.6 }]}
+          >
+            <Icon name={{ ios: 'info.circle', android: 'info' }} size={24} color={colors.inkMuted} />
+          </Pressable>
+        </View>
+        {refs.length > 0 ? <Text style={styles.subtitle}>{copy.homeSubtitle}</Text> : null}
       </View>
       <FlatList
         data={refs}
@@ -86,7 +97,7 @@ export default function Home() {
                       : { ios: 'figure.stand', android: 'accessibility_new' }
                   }
                   size={14}
-                  color={colors.amber}
+                  color={colors.accent}
                 />
                 {referencePeopleCount(item) > 1 ? <Text style={styles.badgeCount}>{referencePeopleCount(item)}</Text> : null}
               </View>
@@ -106,7 +117,7 @@ export default function Home() {
           <PrimaryButton
             label={adding ? copy.readingPose : copy.fromGallery}
             loading={adding}
-            icon={<Icon name={{ ios: 'photo.on.rectangle', android: 'photo_library' }} color={colors.onAmber} />}
+            icon={<Icon name={{ ios: 'photo.on.rectangle', android: 'photo_library' }} color={colors.onAccent} />}
             onPress={add}
           />
         </View>
@@ -118,9 +129,18 @@ export default function Home() {
 function Empty() {
   return (
     <View style={styles.empty}>
-      <Icon name={{ ios: 'camera.viewfinder', android: 'photo_camera' }} size={52} color={colors.amber} />
       <Text style={styles.emptyTitle}>{copy.emptyTitle}</Text>
-      <Text style={styles.emptyBody}>{copy.emptyBody}</Text>
+      {copy.steps.map((step, i) => (
+        <View key={step.title} style={styles.step}>
+          <View style={styles.stepNumber}>
+            <Text style={styles.stepNumberText}>{i + 1}</Text>
+          </View>
+          <View style={styles.stepText}>
+            <Text style={styles.stepTitle}>{step.title}</Text>
+            <Text style={styles.stepBody}>{step.body}</Text>
+          </View>
+        </View>
+      ))}
     </View>
   );
 }
@@ -138,7 +158,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: colors.surface,
   },
-  badgeCount: { ...type.caption, color: colors.amber, fontWeight: '800' },
+  badgeCount: { ...type.caption, color: colors.accent, fontWeight: '800' },
   badge: {
     position: 'absolute',
     top: 8,
@@ -153,9 +173,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, padding: 32 },
-  emptyTitle: { ...type.title, color: colors.ink, textAlign: 'center' },
-  emptyBody: { ...type.body, color: colors.inkMuted, textAlign: 'center' },
+  empty: { flex: 1, justifyContent: 'center', gap: 18, paddingHorizontal: 8, paddingBottom: 40 },
+  emptyTitle: { ...type.title, color: colors.ink, marginBottom: 4 },
+  step: { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
+  stepNumber: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepNumberText: { fontSize: 15, fontWeight: '800', color: colors.onAccent },
+  stepText: { flex: 1, gap: 2 },
+  stepTitle: { ...type.label, fontSize: 16, color: colors.ink },
+  stepBody: { ...type.body, fontSize: 15, color: colors.inkMuted },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  infoButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   bottom: { position: 'absolute', left: 16, right: 16, bottom: 0, paddingTop: 12, flexDirection: 'row', gap: 12 },
   bottomItem: { flex: 1 },
 });

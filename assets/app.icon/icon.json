@@ -1,0 +1,19 @@
+{
+  "fill" : {
+    "automatic-gradient" : "extended-srgb:0.10000,0.10000,0.11000,1.00000"
+  },
+  "groups" : [
+    {
+      "layers" : [
+        { "image-name" : "corners.svg", "name" : "corners" },
+        { "image-name" : "figure.svg", "name" : "figure" },
+        { "image-name" : "ghost.svg", "name" : "ghost" }
+      ],
+      "shadow" : { "kind" : "neutral", "opacity" : 0.5 },
+      "translucency" : { "enabled" : true, "value" : 0.4 }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : "shared"
+  }
+}

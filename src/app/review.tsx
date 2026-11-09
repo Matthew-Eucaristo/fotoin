@@ -84,7 +84,7 @@ export default function Review() {
                 <Icon
                   name={poseSaved ? { ios: 'bookmark.fill', android: 'bookmark' } : { ios: 'bookmark', android: 'bookmark_add' }}
                   size={18}
-                  color={poseSaved ? colors.amber : colors.ink}
+                  color={poseSaved ? colors.accent : colors.ink}
                 />
               }
               onPress={poseSaved || poseSaving ? () => {} : savePose}
@@ -99,7 +99,7 @@ export default function Review() {
             icon={
               <Icon
                 name={saved ? { ios: 'checkmark', android: 'check' } : { ios: 'square.and.arrow.down', android: 'download' }}
-                color={colors.onAmber}
+                color={colors.onAccent}
               />
             }
             onPress={save}

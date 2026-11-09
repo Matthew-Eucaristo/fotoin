@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Kebijakan privasi — Fotoin</title>
+    <meta name="description" content="Kebijakan privasi Fotoin: aplikasi tidak mengumpulkan, menyimpan di server, atau membagikan data apa pun." />
+    <meta name="theme-color" content="#0b0b0c" />
+    <link rel="icon" type="image/png" href="img/favicon.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="nav">
+      <a class="wordmark" href="./"><img src="img/icon.png" alt="" width="32" height="32" /><span>Fotoin <span class="nav-tag">kamera pemandu pose</span></span></a>
+      <nav class="nav-links" aria-label="Halaman">
+        <a href="./">Beranda</a>
+        <a href="https://github.com/Matthew-Eucaristo/fotoin">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="doc">
+      <h1>Kebijakan privasi</h1>
+      <p class="updated">Berlaku sejak 10 November 2026 · <a href="#english">English below</a></p>
+
+      <h2>Ringkasnya</h2>
+      <p>
+        Fotoin tidak mengumpulkan, mengirim, menyimpan di server, atau membagikan data apa pun. Tidak ada akun, iklan,
+        analitik, atau pelacakan. Semua pemrosesan terjadi di perangkatmu.
+      </p>
+
+      <h2>Kamera</h2>
+      <p>
+        Fotoin memakai kamera untuk menampilkan viewfinder, membaca pose dan wajah secara langsung, dan mengambil foto.
+        Gambar kamera dianalisis di memori perangkat dan tidak pernah dikirim ke mana pun.
+      </p>
+
+      <h2>Foto referensi</h2>
+      <p>
+        Foto yang kamu pilih dari galeri atau ambil sebagai contoh disalin ke penyimpanan internal aplikasi, bersama
+        data pose hasil deteksi (posisi titik tubuh dan wajah). Data ini hanya ada di perangkatmu dan terhapus saat kamu
+        menghapus referensi atau mencopot aplikasi. Fotoin memakai pemilih foto sistem, jadi aplikasi hanya melihat foto
+        yang kamu pilih.
+      </p>
+
+      <h2>Menyimpan foto</h2>
+      <p>
+        Saat kamu menekan “Simpan ke Galeri”, foto hasil ditambahkan ke galeri perangkat. Fotoin hanya meminta izin
+        menulis, bukan membaca seluruh galerimu.
+      </p>
+
+      <h2>Pihak ketiga</h2>
+      <p>
+        Deteksi pose dan wajah memakai komponen bawaan platform: Apple Vision di iOS, serta Google MediaPipe dan Google
+        ML Kit di Android. Model-model ini berjalan di perangkat. Komponen Google di Android dapat mengirim data
+        diagnostik anonim tentang kinerja komponen tersebut ke Google sesuai
+        <a href="https://developers.google.com/ml-kit/terms">ketentuan ML Kit</a>; data itu tidak berisi foto atau hasil
+        deteksi.
+      </p>
+
+      <h2>Anak-anak</h2>
+      <p>Fotoin tidak mengumpulkan data dari siapa pun, termasuk anak-anak.</p>
+
+      <h2>Perubahan dan kontak</h2>
+      <p>
+        Perubahan kebijakan ini akan diumumkan di halaman ini dan di
+        <a href="https://github.com/Matthew-Eucaristo/fotoin">repositori GitHub</a>, tempat seluruh kode Fotoin bisa
+        diperiksa. Pertanyaan bisa diajukan lewat
+        <a href="https://github.com/Matthew-Eucaristo/fotoin/issues">GitHub Issues</a>.
+      </p>
+
+      <h2 id="english">In English</h2>
+      <p>
+        Fotoin does not collect, transmit, store on a server, or share any personal data. There are no accounts, ads,
+        analytics or tracking. The camera feed is analysed on the device only. Reference photos you pick or capture are
+        copied into the app's private storage together with the detected pose data, never leave the device, and are
+        deleted when you delete the reference or uninstall the app. Saving a photo uses write-only access to your
+        gallery. Pose and face detection use on-device platform components (Apple Vision; Google MediaPipe and ML Kit on
+        Android); Google's components may send anonymous diagnostics about their own performance under the ML Kit
+        terms, which never include images or detection results. Questions:
+        <a href="https://github.com/Matthew-Eucaristo/fotoin/issues">GitHub Issues</a>.
+      </p>
+    </main>
+
+    <footer class="footer" style="padding-top: 40px">
+      <div class="footer-line">
+        <span>Fotoin, kamera pemandu pose</span>
+        <nav aria-label="Tautan"><a href="./">Beranda</a><a href="https://github.com/Matthew-Eucaristo/fotoin">GitHub</a></nav>
+        <span class="right">© 2026 · Lisensi MIT</span>
+      </div>
+    </footer>
+  </body>
+</html>

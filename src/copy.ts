@@ -3,6 +3,32 @@ import type { MatchResult, ShotHint } from './features/pose/matcher';
 /** Indonesian UI copy, in one place so a language switch is a file swap. */
 export const copy = {
   appName: 'Fotoin',
+  about: 'Tentang Fotoin',
+  version: (v: string) => `Versi ${v}`,
+  privacyPolicy: 'Kebijakan privasi',
+  sourceCode: 'Kode sumber (open source)',
+  promises: [
+    {
+      icon: { ios: 'gift', android: 'redeem' },
+      title: 'Gratis, tanpa iklan',
+      body: 'Tidak ada iklan, langganan, atau akun. Selamanya.',
+    },
+    {
+      icon: { ios: 'lock.iphone', android: 'phonelink_lock' },
+      title: 'Semua di HP-mu',
+      body: 'Pose dibaca langsung di perangkat. Foto dan referensi tidak pernah dikirim ke mana pun.',
+    },
+    {
+      icon: { ios: 'chevron.left.forwardslash.chevron.right', android: 'code' },
+      title: 'Open source',
+      body: 'Kodenya terbuka untuk dipelajari dan dikembangkan bersama.',
+    },
+  ] as const,
+  steps: [
+    { title: 'Pilih pose', body: 'Dari galeri (simpanan Pinterest, IG) atau ambil foto contoh.' },
+    { title: 'Ikuti panduan', body: 'Kerangka pose dan petunjuk memberi tahu cara memotret.' },
+    { title: 'Jepret otomatis', body: 'Kamera memotret sendiri saat posenya sudah pas.' },
+  ] as const,
   homeTitle: 'Referensi pose',
   homeSubtitle: 'Simpan pose yang kamu suka (Pinterest, IG, atau foto contoh), lalu potret subjekmu persis seperti itu.',
   addReference: 'Tambah referensi',
@@ -10,8 +36,7 @@ export const copy = {
   takeExample: 'Foto contoh',
   exampleHint: 'Foto contoh pose yang diinginkan',
   readingPose: 'Membaca pose…',
-  emptyTitle: 'Belum ada referensi',
-  emptyBody: 'Pilih foto dari galeri (misalnya simpanan Pinterest), atau ambil foto contoh pose langsung dari kamera.',
+  emptyTitle: 'Cara pakai',
   noPersonFound: 'Orangnya nggak kebaca. Overlay foto tetap bisa dipakai.',
   deleteReference: 'Hapus referensi',
   cancel: 'Batal',

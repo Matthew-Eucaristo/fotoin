@@ -41,3 +41,6 @@ example
 # generated native folders
 /ios
 /android
+
+# design tooling output
+.taste-skill/

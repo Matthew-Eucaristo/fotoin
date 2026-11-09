@@ -7,10 +7,10 @@
     "icon": "./assets/images/icon.png",
     "scheme": "fotoin",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#121212",
+    "backgroundColor": "#0B0B0C",
     "ios": {
       "bundleIdentifier": "dev.matthew.fotoin",
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/app.icon",
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -20,10 +20,9 @@
     "android": {
       "package": "dev.matthew.fotoin",
       "adaptiveIcon": {
-        "backgroundColor": "#121212",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#151517",
+        "foregroundImage": "./assets/brand/foreground.png",
+        "monochromeImage": "./assets/brand/monochrome.png"
       },
       "predictiveBackGestureEnabled": true,
       "permissions": [
@@ -41,9 +40,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#121212",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#0B0B0C",
+          "image": "./assets/brand/foreground.png",
+          "imageWidth": 160
         }
       ],
       [

@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   levelLine: { width: 72, height: 1.5, backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 1 },
-  levelOn: { width: 120, backgroundColor: colors.level },
+  levelOn: { width: 120, backgroundColor: colors.accent },
   levelRef: { width: 18, height: 1.5, backgroundColor: 'rgba(255,255,255,0.9)' },
   levelRefLeft: { marginRight: 14 },
   levelRefRight: { marginLeft: 14 },

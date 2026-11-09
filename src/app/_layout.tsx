@@ -16,6 +16,15 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="shoot/[id]" options={{ contentStyle: { backgroundColor: '#000' } }} />
         <Stack.Screen name="review" options={{ contentStyle: { backgroundColor: '#000' }, gestureEnabled: false }} />
+        <Stack.Screen
+          name="about"
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: [0.75, 1],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 28,
+          }}
+        />
       </Stack>
     </>
   );
