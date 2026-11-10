@@ -15,7 +15,8 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Fotoin memakai kamera untuk memotret sesuai foto referensi."
-      }
+      },
+      "buildNumber": "1"
     },
     "android": {
       "package": "dev.matthew.fotoin",
@@ -32,8 +33,12 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.READ_MEDIA_AUDIO",
         "android.permission.READ_MEDIA_VIDEO",
-        "android.permission.SYSTEM_ALERT_WINDOW"
-      ]
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.ACTIVITY_RECOGNITION"
+      ],
+      "versionCode": 1
     },
     "plugins": [
       "expo-router",
@@ -68,6 +73,15 @@
         "expo-sensors",
         {
           "motionPermission": false
+        }
+      ],
+      "./plugins/with-release-signing.js",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraProguardRules": "# ML Kit / Firebase components are created by reflection (no-arg constructors).\n-keep class * implements com.google.firebase.components.ComponentRegistrar { public <init>(); }\n-keep class com.google.mlkit.** { *; }\n# MediaPipe tasks: JNI entry points and protobuf-lite messages.\n-keep class com.google.mediapipe.** { *; }\n-keep class com.google.protobuf.** { *; }\n# Flogger (used by MediaPipe) finds its caller by class name on the stack.\n-keep class com.google.common.flogger.** { *; }\n-dontwarn com.google.mediapipe.**\n-dontwarn javax.lang.model.**"
+          }
         }
       ]
     ],

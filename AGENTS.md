@@ -79,6 +79,23 @@ npm start                  # Metro for the dev client
 
 CocoaPods needs `LANG=en_US.UTF-8`.
 
+## Android release
+
+- `plugins/with-release-signing.js` signs release builds with the upload key
+  when `FOTOIN_UPLOAD_*` exist in `~/.gradle/gradle.properties` (keystore lives
+  outside the repo; never commit either); otherwise the debug key.
+- `npx expo prebuild --clean --platform android`, then in `android/`:
+  `./gradlew :app:bundleRelease` (Play AAB) or
+  `./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a` (test APK).
+- R8 is on: test the release build on a device before uploading. Nitro
+  implementation classes need `@DoNotStrip @Keep`; keep rules for ML Kit,
+  MediaPipe, protobuf and Flogger live in `app.json` (`expo-build-properties`).
+- `android.blockedPermissions` keeps the manifest to camera/internet/vibrate;
+  check the merged manifest after adding a library (photo permissions trigger
+  a Play declaration).
+- Store assets and listing copy live in `store/`; Play screenshots must be
+  exactly 9:16.
+
 ## Gotchas
 
 - iOS Simulator has no camera: the shoot screen shows a placeholder.

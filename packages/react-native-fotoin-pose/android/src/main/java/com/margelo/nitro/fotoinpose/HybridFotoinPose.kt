@@ -6,8 +6,10 @@ import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
+import androidx.annotation.Keep
 import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
+import com.facebook.proguard.annotations.DoNotStrip
 import com.google.android.gms.tasks.Tasks
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.core.BaseOptions
@@ -35,6 +37,8 @@ import java.util.concurrent.TimeUnit
  * bundled lite model) and faces with Google ML Kit Face Detection.
  * Output layout is documented in src/specs/FotoinPose.nitro.ts.
  */
+@DoNotStrip
+@Keep
 class HybridFotoinPose : HybridFotoinPoseSpec() {
   private val context: Context
     get() = NitroModules.applicationContext ?: throw IllegalStateException("No application context")
