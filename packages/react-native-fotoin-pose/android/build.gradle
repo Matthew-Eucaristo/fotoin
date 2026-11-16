@@ -145,6 +145,8 @@ dependencies {
   implementation "com.google.mediapipe:tasks-vision:1.2.2"
   // Official Google ML Kit face detection (bundled model) for close-ups.
   implementation "com.google.mlkit:face-detection:16.1.7"
+  // EXIF orientation on API 24-27, where ImageDecoder is unavailable.
+  implementation "androidx.exifinterface:exifinterface:1.4.2"
 }
 
 if (isNewArchitectureEnabled()) {

@@ -38,6 +38,7 @@ export const copy = {
   readingPose: 'Membaca pose…',
   emptyTitle: 'Cara pakai',
   noPersonFound: 'Orangnya nggak kebaca. Overlay foto tetap bisa dipakai.',
+  addFailed: 'Foto gagal dibaca. Coba lagi.',
   deleteReference: 'Hapus referensi',
   cancel: 'Batal',
 

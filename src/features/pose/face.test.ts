@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { type FacePose, faceAngles, matchFace } from './face';
+import { type FacePose, coverFace, faceAngles, matchFace, mirroredFace } from './face';
 import { decodeFaces } from './decode';
 
 function face({ dx = 0, scale = 1, noseDx = 0, tilt = 0, noseDy = 0 } = {}): FacePose {
@@ -48,6 +48,24 @@ describe('matchFace', () => {
 
   it('returns findPerson without a live face', () => {
     expect(matchFace(null, face()).hint).toBe('findPerson');
+  });
+});
+
+describe('coverFace', () => {
+  it('preserves the centre and widens the box for a wider source', () => {
+    const source = face();
+    source.aspect = 4 / 3;
+    const out = coverFace(source, 3 / 4);
+    expect(out.aspect).toBe(3 / 4);
+    expect(out.nose.x).toBeCloseTo(0.5);
+    expect(out.nose.y).toBeCloseTo(source.nose.y);
+    expect(out.box.w).toBeGreaterThan(source.box.w);
+  });
+
+  it('keeps landmarks in x order when mirrored', () => {
+    const out = mirroredFace(face());
+    expect(out.eyes[0].x).toBeLessThan(out.eyes[1].x);
+    expect(out.mouth[0].x).toBeLessThan(out.mouth[1].x);
   });
 });
 

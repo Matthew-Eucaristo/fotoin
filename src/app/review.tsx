@@ -31,6 +31,9 @@ export default function Review() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setPoseSaved(true);
       if (referenceMode(ref) === 'none') Alert.alert(copy.noPersonFound);
+    } catch (error) {
+      console.warn('Could not save pose', error);
+      Alert.alert(copy.addFailed);
     } finally {
       setPoseSaving(false);
     }

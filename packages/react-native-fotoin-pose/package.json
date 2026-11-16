@@ -1,7 +1,7 @@
 {
   "name": "react-native-fotoin-pose",
   "version": "0.1.0",
-  "description": "On-device body pose for Fotoin: Apple Vision (iOS) and Google ML Kit (Android), as a VisionCamera v5 frame plugin.",
+  "description": "On-device body and face detection for Fotoin: Apple Vision (iOS) and Google MediaPipe + ML Kit (Android), exposed as a Nitro hybrid object.",
   "private": true,
   "main": "src/index",
   "react-native": "src/index",
@@ -30,7 +30,7 @@
     "*.podspec",
     "README.md"
   ],
-  "license": "UNLICENSED",
+  "license": "MIT",
   "peerDependencies": {
     "react": "*",
     "react-native": "*",

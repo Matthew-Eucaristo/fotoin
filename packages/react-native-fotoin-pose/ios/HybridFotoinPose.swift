@@ -68,7 +68,15 @@ class HybridFotoinPose: HybridFotoinPoseSpec {
 
   /// Vision handler for a still image, honouring EXIF orientation.
   private static func handler(forPath path: String) throws -> (VNImageRequestHandler, Double) {
-    let url = path.hasPrefix("file://") ? URL(string: path)! : URL(fileURLWithPath: path)
+    let url: URL
+    if path.hasPrefix("file://") {
+      guard let parsed = URL(string: path) else {
+        throw RuntimeError.error(withMessage: "Invalid image URI: \(path)")
+      }
+      url = parsed
+    } else {
+      url = URL(fileURLWithPath: path)
+    }
     guard let image = UIImage(contentsOfFile: url.path), let cg = image.cgImage else {
       throw RuntimeError.error(withMessage: "Cannot read image at \(path)")
     }

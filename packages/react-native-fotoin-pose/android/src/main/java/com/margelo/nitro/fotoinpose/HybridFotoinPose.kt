@@ -4,10 +4,12 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
+import android.graphics.Matrix
 import android.net.Uri
 import android.os.Build
 import androidx.annotation.Keep
 import androidx.annotation.OptIn
+import androidx.exifinterface.media.ExifInterface
 import androidx.camera.core.ExperimentalGetImage
 import com.facebook.proguard.annotations.DoNotStrip
 import com.google.android.gms.tasks.Tasks
@@ -191,8 +193,24 @@ class HybridFotoinPose : HybridFotoinPoseSpec() {
         }
       }
     }
-    return context.contentResolver.openInputStream(uri).use { BitmapFactory.decodeStream(it) }
+    val raw = context.contentResolver.openInputStream(uri).use { BitmapFactory.decodeStream(it) }
       ?: throw IllegalStateException("Cannot read image at $path")
+    val orientation = context.contentResolver.openInputStream(uri)?.use { input ->
+      ExifInterface(input).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+    } ?: ExifInterface.ORIENTATION_NORMAL
+    val matrix = when (orientation) {
+      ExifInterface.ORIENTATION_ROTATE_90 -> Matrix().apply { postRotate(90f) }
+      ExifInterface.ORIENTATION_ROTATE_180 -> Matrix().apply { postRotate(180f) }
+      ExifInterface.ORIENTATION_ROTATE_270 -> Matrix().apply { postRotate(270f) }
+      ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> Matrix().apply { postScale(-1f, 1f) }
+      ExifInterface.ORIENTATION_FLIP_VERTICAL -> Matrix().apply { postScale(1f, -1f) }
+      ExifInterface.ORIENTATION_TRANSPOSE -> Matrix().apply { postRotate(90f); postScale(-1f, 1f) }
+      ExifInterface.ORIENTATION_TRANSVERSE -> Matrix().apply { postRotate(270f); postScale(-1f, 1f) }
+      else -> null
+    } ?: return raw
+    val oriented = Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height, matrix, true)
+    raw.recycle()
+    return oriented
   }
 
   companion object {

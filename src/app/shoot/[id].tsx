@@ -1,7 +1,6 @@
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
-import { Accelerometer } from 'expo-sensors';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, AppState, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,9 +23,11 @@ import { referenceMode } from '@/features/pose/mode';
 import { FotoinPose } from '@/features/pose/native';
 import { type BodyPose, coverInto } from '@/features/pose/pose';
 import { addReference, referenceUri, retryPose, useReference } from '@/features/references/store';
+import { autoCaptureTick, type AutoCaptureState } from '@/features/shoot/auto-capture';
 import { FaceOverlay } from '@/features/shoot/face-overlay';
 import { MatchMeter } from '@/features/shoot/match-meter';
 import { PoseOverlay } from '@/features/shoot/pose-overlay';
+import { getRollDegrees, useRollSubscription } from '@/features/shoot/roll';
 import { ViewfinderGuides } from '@/features/shoot/viewfinder-guides';
 import { colors, scoreColor, type } from '@/theme';
 import { PrimaryButton } from '@/ui/buttons';
@@ -50,6 +51,7 @@ type Lens = { label: string; zoom: number };
 const NEW_REFERENCE = 'new';
 
 export default function Shoot() {
+  useRollSubscription();
   const { id } = useLocalSearchParams<{ id: string }>();
   const reference = useReference(id);
   const capturingReference = id === NEW_REFERENCE;
@@ -73,8 +75,12 @@ export default function Shoot() {
   const [livePeople, setLivePeople] = useState<BodyPose[]>([]);
   const [liveFaces, setLiveFaces] = useState<FacePose[]>([]);
   const [match, setMatch] = useState<MatchResult>(NO_MATCH);
-  const roll = useRef(0);
-  const matchedSince = useRef<number | null>(null);
+  const autoState = useRef<AutoCaptureState>({ matchedSince: null });
+  const capturingRef = useRef(false);
+  const autoRef = useRef(auto);
+  useEffect(() => {
+    autoRef.current = auto;
+  }, [auto]);
 
   // Viewport follows the reference shape so the shot is framed like it.
   const viewAspect = Math.min(1, Math.max(9 / 16, reference?.aspect ?? 3 / 4));
@@ -117,15 +123,6 @@ export default function Shoot() {
     if (device && !hasPermission) requestPermission().catch(() => {});
   }, [device, hasPermission, requestPermission]);
 
-  useEffect(() => {
-    const sub = Accelerometer.addListener(({ x, y }) => {
-      // Sign conventions differ per platform; |y| keeps upright portrait ≈ 0°.
-      const deg = (Math.atan2(x, Math.abs(y)) * 180) / Math.PI;
-      roll.current = roll.current * 0.7 + deg * 0.3;
-    });
-    return () => sub.remove();
-  }, []);
-
   const photoOutput = usePhotoOutput({
     targetResolution: CommonResolutions.UHD_4_3, // ~12 MP
     // 'quality' gives the iPhone Camera pipeline (Deep Fusion / Smart HDR).
@@ -133,23 +130,29 @@ export default function Shoot() {
   });
 
   const lastFrame = useMemo(() => createSynchronizable(0), []);
+  const lastErrorLog = useMemo(() => createSynchronizable(-1e12), []);
   // Analysis only runs when there is something to match, and only the
   // detector the reference needs (body or face).
   const analyze = useMemo(() => createSynchronizable(ANALYZE_NONE), []);
   useEffect(() => {
-    analyze.setBlocking(mode === 'body' ? ANALYZE_BODY : mode === 'face' ? ANALYZE_FACE : ANALYZE_NONE);
-  }, [analyze, mode]);
+    const kind = peek ? ANALYZE_NONE : mode === 'body' ? ANALYZE_BODY : mode === 'face' ? ANALYZE_FACE : ANALYZE_NONE;
+    analyze.setBlocking(kind);
+  }, [analyze, mode, peek]);
+
+  useEffect(() => {
+    autoState.current.matchedSince = null;
+  }, [auto, peek]);
 
   function onPoseValues(values: number[], frameMs: number, kind: number) {
     let result: MatchResult = NO_MATCH;
     if (kind === ANALYZE_BODY && targets.length > 0) {
       const people = decodePeople(values).map((p) => coverInto(p, viewAspect));
       setLivePeople(people);
-      result = matchGroup(people, targets, matchPose, bodyAnchor, roll.current);
+      result = matchGroup(people, targets, matchPose, bodyAnchor, getRollDegrees());
     } else if (kind === ANALYZE_FACE && targetFaces.length > 0) {
       const faces = decodeFaces(values).map((f) => coverFace(f, viewAspect));
       setLiveFaces(faces);
-      result = matchGroup(faces, targetFaces, matchFace, faceAnchor, roll.current);
+      result = matchGroup(faces, targetFaces, matchFace, faceAnchor, getRollDegrees());
     } else {
       return;
     }
@@ -165,16 +168,21 @@ export default function Shoot() {
     dropFramesWhileBusy: true,
     onFrame(frame) {
       'worklet';
+      let frameMs = 0;
       try {
         const kind = analyze.getDirty();
         if (kind === ANALYZE_NONE) return;
-        const frameMs = frame.timestamp * FRAME_TS_TO_MS;
+        frameMs = frame.timestamp * FRAME_TS_TO_MS;
         if (frameMs - lastFrame.getDirty() < FRAME_INTERVAL_MS) return;
         lastFrame.setBlocking(frameMs);
         const values = kind === ANALYZE_FACE ? FotoinPose.detectFace(frame) : FotoinPose.detect(frame);
         scheduleOnRN(onPoseValues, values, frameMs, kind);
-      } catch {
+      } catch (error) {
         // A dropped frame is fine; the next one will be analysed.
+        if (frameMs - lastErrorLog.getDirty() >= 5000) {
+          lastErrorLog.setBlocking(frameMs);
+          console.warn('Frame analysis failed', error);
+        }
       } finally {
         frame.dispose();
       }
@@ -182,22 +190,22 @@ export default function Shoot() {
   });
 
   function checkAuto(result: MatchResult, now: number) {
-    if (!auto || capturing) return;
-    if (result.score < AUTO_THRESHOLD) {
-      matchedSince.current = null;
-      return;
-    }
-    if (matchedSince.current == null) {
-      matchedSince.current = now;
-      Haptics.selectionAsync();
-    } else if (now - matchedSince.current >= AUTO_HOLD_MS) {
-      matchedSince.current = null;
-      capture();
-    }
+    const tick = autoCaptureTick(autoState.current, {
+      enabled: autoRef.current,
+      busy: capturingRef.current,
+      score: result.score,
+      now,
+      threshold: AUTO_THRESHOLD,
+      holdMs: AUTO_HOLD_MS,
+    });
+    if (tick.started) Haptics.selectionAsync();
+    if (tick.fire) capture();
   }
 
   async function capture() {
-    if (capturing) return;
+    if (capturingRef.current) return;
+    capturingRef.current = true;
+    autoState.current.matchedSince = null;
     setCapturing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
@@ -210,7 +218,11 @@ export default function Shoot() {
         return;
       }
       router.push({ pathname: '/review', params: { shot: `file://${filePath}`, id } });
+    } catch (error) {
+      console.warn('Capture failed', error);
+      Alert.alert(copy.addFailed);
     } finally {
+      capturingRef.current = false;
       setCapturing(false);
     }
   }

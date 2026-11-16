@@ -1,26 +1,8 @@
-import { Accelerometer } from 'expo-sensors';
-import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { colors } from '@/theme';
 
-/** Phone roll in degrees (0 = upright portrait), smoothed, ~15 Hz. */
-export function useRoll(onRoll?: (deg: number) => void): number {
-  const [roll, setRoll] = useState(0);
-  useEffect(() => {
-    let smoothed = 0;
-    Accelerometer.setUpdateInterval(66);
-    const sub = Accelerometer.addListener(({ x, y }) => {
-      // Sign conventions differ per platform; |y| keeps upright portrait ≈ 0°.
-      const deg = (Math.atan2(x, Math.abs(y)) * 180) / Math.PI;
-      smoothed = smoothed * 0.7 + deg * 0.3;
-      setRoll(Math.round(smoothed * 2) / 2); // 0.5° steps: fewer renders
-      onRoll?.(smoothed);
-    });
-    return () => sub.remove();
-  }, [onRoll]);
-  return roll;
-}
+import { useRollValue } from './roll';
 
 const LEVEL_TOLERANCE_DEG = 1;
 
@@ -29,7 +11,7 @@ const LEVEL_TOLERANCE_DEG = 1;
  * that rotates with the phone and turns yellow when the shot is straight.
  */
 export function ViewfinderGuides({ grid = true }: { grid?: boolean }) {
-  const rollDegrees = useRoll();
+  const rollDegrees = useRollValue();
   const level = Math.abs(rollDegrees) <= LEVEL_TOLERANCE_DEG;
   // Clamp so a strongly tilted phone does not draw a vertical bar.
   const angle = Math.max(-30, Math.min(30, -rollDegrees));

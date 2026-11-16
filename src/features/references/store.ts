@@ -5,56 +5,54 @@ import { faceAnchor, type FacePose } from '../pose/face';
 import { bodyAnchor } from '../pose/matcher';
 import { detectFacesInImage, detectPeopleInImage } from '../pose/native';
 import type { BodyPose } from '../pose/pose';
+import { type LegacyReference, migrate, prominent, type ReferencePhoto } from './migrate';
 
-/**
- * A reference photo to recreate. Stored only on this device: Pinterest images
- * are someone else's work, used privately as a guide.
- */
-export type ReferencePhoto = {
-  id: string;
-  /** File name inside the references directory (URIs change across installs). */
-  file: string;
-  /** Image width / height (upright). */
-  aspect: number;
-  createdAt: number;
-  /** Everyone found, largest first (up to 4). Empty: ghost overlay only. */
-  people: BodyPose[];
-  /** Faces, largest first; for close-ups. Undefined until first read. */
-  faces?: FacePose[];
-};
-
-/** Saves before multi-person support stored a single `pose` / `face`. */
-type LegacyReference = Omit<ReferencePhoto, 'people' | 'faces'> & {
-  people?: BodyPose[];
-  faces?: FacePose[];
-  pose?: BodyPose | null;
-  face?: FacePose | null;
-};
-
-
+export type { ReferencePhoto } from './migrate';
 
 const dir = new Directory(Paths.document, 'references');
 const indexFile = new File(dir, 'index.json');
+const indexTemp = new File(dir, 'index.json.tmp');
 
 let items: ReferencePhoto[] = [];
 let loaded = false;
 const listeners = new Set<() => void>();
+let persistChain: Promise<void> = Promise.resolve();
+let lastId = 0;
+
+function nextId(): string {
+  lastId = Math.max(Date.now(), lastId + 1);
+  return lastId.toString(36);
+}
+
+function persist(next: ReferencePhoto[]): void {
+  const json = JSON.stringify(next);
+  persistChain = persistChain
+    .then(async () => {
+      // File.move() mutates the source File's URI to the destination, so each write needs a fresh File.
+      const temp = new File(dir, 'index.json.tmp');
+      await temp.write(json);
+      await temp.move(indexFile, { overwrite: true });
+    })
+    .catch((error) => console.warn('Failed to save references index', error));
+}
 
 function emit(next: ReferencePhoto[]) {
   items = next;
-  indexFile.write(JSON.stringify(next));
   listeners.forEach((l) => l());
+  persist(next);
 }
 
 function load() {
   if (loaded) return;
   loaded = true;
   if (!dir.exists) dir.create({ intermediates: true });
-  if (indexFile.exists) {
+  for (const file of [indexFile, indexTemp]) {
+    if (!file.exists) continue;
     try {
-      items = (JSON.parse(indexFile.textSync()) as LegacyReference[]).map(migrate);
-    } catch {
-      items = [];
+      items = (JSON.parse(file.textSync()) as LegacyReference[]).map(migrate);
+      return;
+    } catch (error) {
+      console.warn('Unreadable reference index', file.uri, error);
     }
   }
 }
@@ -71,41 +69,17 @@ export function getReference(id: string): ReferencePhoto | undefined {
 /** Copies the picked image into app storage and reads its pose once. */
 export async function addReference(sourceUri: string, width: number, height: number): Promise<ReferencePhoto> {
   load();
-  const id = Date.now().toString(36);
+  const id = nextId();
   const source = new File(sourceUri);
   const ext = source.extension || '.jpg';
   const file = `${id}${ext}`;
-  source.copy(new File(dir, file));
+  await source.copy(new File(dir, file));
 
   const fallbackAspect = width > 0 && height > 0 ? width / height : 3 / 4;
   const [{ people, aspect }, faces] = await Promise.all([readPeople(file, fallbackAspect), readFaces(file)]);
   const ref: ReferencePhoto = { id, file, aspect, createdAt: Date.now(), people, faces };
   emit([ref, ...items]);
   return ref;
-}
-
-/** Below this share of the largest subject, people/faces count as background. */
-const BACKGROUND_RATIO = 0.4;
-
-/**
- * Drops background subjects (posters, passers-by, people far behind) so the
- * reference only asks for the people who are actually the subject.
- */
-function prominent<T>(items: T[], size: (t: T) => number): T[] {
-  const largest = Math.max(0, ...items.map(size));
-  return items.filter((t) => size(t) >= largest * BACKGROUND_RATIO);
-}
-
-function migrate(r: LegacyReference): ReferencePhoto {
-  const { pose, face, ...rest } = r;
-  const people = r.people ?? (pose ? [pose] : []);
-  // A legacy `face: null` means "read, none found"; undefined means never read.
-  const faces = r.faces ?? (face ? [face] : face === null ? [] : undefined);
-  return {
-    ...rest,
-    people: prominent(people, (p) => bodyAnchor(p).size),
-    faces: faces && prominent(faces, (f) => faceAnchor(f).size),
-  };
 }
 
 /**

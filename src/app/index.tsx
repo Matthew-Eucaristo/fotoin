@@ -40,6 +40,9 @@ export default function Home() {
       const ref = await addReference(asset.uri, asset.width, asset.height);
       if (referenceMode(ref) === 'none') Alert.alert(copy.noPersonFound);
       router.push({ pathname: '/shoot/[id]', params: { id: ref.id } });
+    } catch (error) {
+      console.warn('Could not add reference', error);
+      Alert.alert(copy.addFailed);
     } finally {
       setAdding(false);
     }
